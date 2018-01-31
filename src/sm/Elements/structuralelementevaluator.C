@@ -279,6 +279,10 @@ void StructuralElementEvaluator :: giveInternalForcesVector(FloatArray &answer, 
     for ( int ir = 0; ir < numberOfIntegrationRules; ir++ ) {
         m->clear();
         IntegrationRule *iRule = elem->giveIntegrationRule(ir);
+
+	if(!iRule->isActivated())
+	  continue;
+
         for ( GaussPoint *gp: *iRule ) {
             this->computeBMatrixAt(b, gp);
             if ( useUpdatedGpRecord ) {
@@ -307,6 +311,36 @@ void StructuralElementEvaluator :: giveInternalForcesVector(FloatArray &answer, 
         answer.zero();
     }
 }
+
+
+void StructuralElementEvaluator :: computeDisplacementVector(FloatArray &answer, GaussPoint *gp, TimeStep *tStep, FloatArray &u)
+// Computes the vector containing the strains at the Gauss point gp of
+// the receiver, at time step tStep. The nature of these strains depends
+// on the element's type.
+{
+    FloatMatrix N;
+    FloatArray ur;
+    Element *elem = this->giveElement();
+
+    if ( !this->isActivated(tStep) ) {
+        answer.resize( StructuralMaterial :: giveSizeOfVoigtSymVector( gp->giveMaterialMode() ) );
+        answer.zero();
+        return;
+    }
+
+     this->computeNMatrixAt(N, gp);
+
+    // get local code numbers corresponding to ir
+    IntArray lc;
+    this->giveIntegrationElementLocalCodeNumbers(lc, elem, gp->giveIntegrationRule());
+    ur.resize( N.giveNumberOfColumns() );
+    for ( int i = 1; i <= lc.giveSize(); i++ ) {
+        ur.at(i) = u.at( lc.at(i) );
+    }
+
+    answer.beProductOf(N, ur);
+}
+
 
 
 void StructuralElementEvaluator :: computeStrainVector(FloatArray &answer, GaussPoint *gp, TimeStep *tStep, FloatArray &u)
@@ -398,6 +432,9 @@ void StructuralElementEvaluator :: computeStiffnessMatrix(FloatMatrix &answer, M
 #endif
         m->clear();
         IntegrationRule *iRule = elem->giveIntegrationRule(ir);
+	if(!iRule->isActivated())
+	  continue;
+
         // loop over individual integration points
         for ( GaussPoint *gp: *iRule ) {
             double dV = this->computeVolumeAround(gp);

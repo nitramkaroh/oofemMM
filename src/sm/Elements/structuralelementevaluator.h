@@ -140,6 +140,11 @@ protected:
      * @param tStep Time step.
      */
     virtual void computeConstitutiveMatrixAt(FloatMatrix &answer, MatResponseMode rMode, GaussPoint *gp, TimeStep *tStep) = 0;
+
+
+    void computeDisplacementVector(FloatArray &answer, GaussPoint *gp, TimeStep *tStep, FloatArray &u);
+
+
     /**
      * Optimized version, allowing to pass element displacements as parameter.
      * Standard version has a huge performance leak; in typical IGA element the element vector is VERY large

@@ -192,6 +192,13 @@ Domain *Domain :: Clone()
         dataReader.insertInputRecord(DataReader :: IR_crosssectRec, new DynamicInputRecord( *cs ));
     }
 
+
+    //Sets
+    for ( auto &set: setList ) {
+        dataReader.insertInputRecord(DataReader :: IR_setRec, new DynamicInputRecord( *set ));
+    }
+
+
     //Material
     for ( auto &mat: materialList ) {
         dataReader.insertInputRecord(DataReader :: IR_matRec, new DynamicInputRecord( *mat ));
@@ -212,11 +219,149 @@ Domain *Domain :: Clone()
         dataReader.insertInputRecord(DataReader :: IR_funcRec, new DynamicInputRecord( *func ));
     }
 
-    //Sets
-    for ( auto &set: setList ) {
-        dataReader.insertInputRecord(DataReader :: IR_setRec, new DynamicInputRecord( *set ));
+
+    //XFEM manager
+    ///@todo Redesign this part (as well as this whole clone function); / Mikael
+    if ( this->xfemManager != NULL ) {
+        DynamicInputRecord *xmanRec = new DynamicInputRecord();
+        xfemManager->giveInputRecord(* xmanRec);
+        dataReader.insertInputRecord(DataReader :: IR_xfemManRec, xmanRec);
+
+
+        // Enrichment items
+        int nEI = xfemManager->giveNumberOfEnrichmentItems();
+        for ( int i = 1; i <= nEI; i++ ) {
+            EnrichmentItem *ei = xfemManager->giveEnrichmentItem(i);
+            ei->appendInputRecords(dataReader);
+        }
     }
 
+
+    dataReader.writeToFile("test.txt");
+
+
+    dNew->instanciateYourself(& dataReader);
+    dNew->postInitialize();
+
+    return dNew;
+}
+
+
+
+  Domain *Domain :: createReducedDomain(int nNodes,IntArray &selectedNodeList, int nElements,IntArray &selectedElementList)
+{
+    /////////////////////////////////////////////////////////
+    // Create a copy of the domain using
+    // the dynamic data reader.
+
+    EngngModel *eModel = this->giveEngngModel();
+
+    int domNum = this->giveNumber();
+    int serNum = this->giveSerialNumber();
+    //@todo increment domain number??
+    Domain *dNew = new Domain(domNum, serNum, eModel);
+    //dNew->resizeDofManagers(numberOfReducedDomainNodes);
+    // dNew->resizeElements(numberOfReducedDomainElements);
+
+
+    DynamicDataReader dataReader;
+    DynamicInputRecord *inputRec;
+
+
+    //Domain
+    inputRec = new DynamicInputRecord();
+    inputRec->setField(mDomainType, _IFT_Domain_type);
+    dataReader.insertInputRecord(DataReader :: IR_domainRec, inputRec);
+
+
+    //Output
+    inputRec = new DynamicInputRecord();
+    inputRec->setRecordKeywordField(_IFT_OutputManager_Name, 1);
+    inputRec->setField(_IFT_OutputManager_tstepall);
+    inputRec->setField(_IFT_OutputManager_dofmanall);
+    inputRec->setField(_IFT_OutputManager_elementall);
+    dataReader.insertInputRecord(DataReader :: IR_outManRec, inputRec);
+
+    //Components size record
+    inputRec = new DynamicInputRecord();
+    inputRec->setField(nNodes,                     _IFT_Domain_ndofman);
+    inputRec->setField(nElements,                  _IFT_Domain_nelem);
+    inputRec->setField(this->giveNumberOfCrossSectionModels(),  _IFT_Domain_ncrosssect);
+    inputRec->setField(this->giveNumberOfMaterialModels(),      _IFT_Domain_nmat);
+    inputRec->setField(this->giveNumberOfBoundaryConditions(),  _IFT_Domain_nbc);
+    inputRec->setField(this->giveNumberOfInitialConditions(),   _IFT_Domain_nic);
+    inputRec->setField(this->giveNumberOfFunctions(),           _IFT_Domain_nfunct);
+    inputRec->setField(this->giveNumberOfSets(),                _IFT_Domain_nset);
+    inputRec->setField(this->giveNumberOfSpatialDimensions(),   _IFT_Domain_numberOfSpatialDimensions);
+    if ( this->isAxisymmetric() ) {
+        inputRec->setField(_IFT_Domain_axisymmetric);
+    }
+
+
+    // fields to add:
+    // inputRec->setField( , _IFT_Domain_nbarrier);
+    // inputRec->setField( , _IFT_Domain_nrandgen);
+    // inputRec->setField( , _IFT_Domain_topology);
+    // inputRec->setField( , _IFT_Domain_nfracman);
+
+
+    bool nxfemMan = 0;
+    if ( this->hasXfemManager() ) {
+        nxfemMan = 1;
+    }
+    inputRec->setField(nxfemMan, _IFT_Domain_nxfemman);
+
+
+    dataReader.insertInputRecord(DataReader :: IR_domainCompRec, inputRec);
+
+
+    //Nodes
+    for ( auto &dman: dofManagerList ) {
+      if(selectedNodeList.at(dman->giveNumber()) == 1) {
+        dataReader.insertInputRecord(DataReader :: IR_dofmanRec, new DynamicInputRecord( *dman ));
+      }
+    }
+
+    //Elements
+    for ( auto &el: elementList ) {
+      if(selectedElementList.at(el->giveNumber()) == 1) {
+	dataReader.insertInputRecord(DataReader :: IR_elemRec, new DynamicInputRecord( *el ));
+      }
+    }
+
+  
+    //CrossSection
+    for ( auto &cs: crossSectionList ) {
+        dataReader.insertInputRecord(DataReader :: IR_crosssectRec, new DynamicInputRecord( *cs ));
+    }
+
+    //Sets
+    for ( auto &set: setList ) {
+      dataReader.insertInputRecord(DataReader :: IR_setRec, new DynamicInputRecord( *set ));
+    }
+
+
+    //Material
+    for ( auto &mat: materialList ) {
+        dataReader.insertInputRecord(DataReader :: IR_matRec, new DynamicInputRecord( *mat ));
+    }
+
+    //Boundary Conditions
+    for ( auto &bc: bcList ) {
+        dataReader.insertInputRecord(DataReader :: IR_bcRec, new DynamicInputRecord( *bc ));
+    }
+
+    //Initial Conditions
+    for ( auto &ic: icList ) {
+        dataReader.insertInputRecord(DataReader :: IR_icRec, new DynamicInputRecord( *ic ));
+    }
+
+    //Functions
+    for ( auto &func: functionList ) {
+        dataReader.insertInputRecord(DataReader :: IR_funcRec, new DynamicInputRecord( *func ));
+    }
+
+   
     //XFEM manager
     ///@todo Redesign this part (as well as this whole clone function); / Mikael
     if ( this->xfemManager != NULL ) {
@@ -239,7 +384,12 @@ Domain *Domain :: Clone()
     return dNew;
 }
 
+
+
+
 Domain :: ~Domain() { }
+
+
 
 void
 Domain :: clear()
@@ -753,6 +903,45 @@ Domain :: instanciateYourself(DataReader *dr)
     VERBOSE_PRINT0("Instanciated cross sections ", ncrossSections)
 #  endif
 
+ // read load time functions
+    setList.clear();
+    setList.resize(nset);
+    for ( int i = 1; i <= nset; i++ ) {
+        ir = dr->giveInputRecord(DataReader :: IR_setRec, i);
+        // read type of set
+        IR_GIVE_RECORD_KEYWORD_FIELD(ir, name, num);
+        // Only one set for now (i don't see any need to ever introduce any other version)
+        std :: unique_ptr< Set > set(new Set(num, this)); //classFactory.createSet(name.c_str(), num, this)
+        if ( !set ) {
+            OOFEM_ERROR("Couldn't create set: %s", name.c_str());
+        }
+
+        set->initializeFrom(ir);
+
+        // check number
+        if ( ( num < 1 ) || ( num > nset ) ) {
+            OOFEM_ERROR("Invalid set number (num=%d)", num);
+        }
+
+        if ( !setList[num - 1] ) {
+            setList[num - 1] = std :: move(set);
+        } else {
+            OOFEM_ERROR("Set entry already exist (num=%d)", num);
+        }
+
+        ir->finish();
+    }
+
+#  ifdef VERBOSE
+    if ( nset ) {
+        VERBOSE_PRINT0("Instanciated sets ", nset);
+    }
+#  endif
+
+
+
+
+
     // read materials
     materialList.clear();
     materialList.resize(nmat);
@@ -921,40 +1110,7 @@ Domain :: instanciateYourself(DataReader *dr)
     VERBOSE_PRINT0("Instanciated load-time fncts ", nloadtimefunc)
 #  endif
 
-    // read load time functions
-    setList.clear();
-    setList.resize(nset);
-    for ( int i = 1; i <= nset; i++ ) {
-        ir = dr->giveInputRecord(DataReader :: IR_setRec, i);
-        // read type of set
-        IR_GIVE_RECORD_KEYWORD_FIELD(ir, name, num);
-        // Only one set for now (i don't see any need to ever introduce any other version)
-        std :: unique_ptr< Set > set(new Set(num, this)); //classFactory.createSet(name.c_str(), num, this)
-        if ( !set ) {
-            OOFEM_ERROR("Couldn't create set: %s", name.c_str());
-        }
-
-        set->initializeFrom(ir);
-
-        // check number
-        if ( ( num < 1 ) || ( num > nset ) ) {
-            OOFEM_ERROR("Invalid set number (num=%d)", num);
-        }
-
-        if ( !setList[num - 1] ) {
-            setList[num - 1] = std :: move(set);
-        } else {
-            OOFEM_ERROR("Set entry already exist (num=%d)", num);
-        }
-
-        ir->finish();
-    }
-
-#  ifdef VERBOSE
-    if ( nset ) {
-        VERBOSE_PRINT0("Instanciated sets ", nset);
-    }
-#  endif
+   
 
     if ( nxfemman ) {
         ir = dr->giveInputRecord(DataReader :: IR_xfemManRec, 1);

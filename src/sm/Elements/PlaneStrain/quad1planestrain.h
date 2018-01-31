@@ -40,6 +40,8 @@
 #include "ErrorEstimators/huertaerrorestimator.h"
 #include "zznodalrecoverymodel.h"
 #include "sprnodalrecoverymodel.h"
+#include "nodalaveragingrecoverymodel.h"
+
 #include "spatiallocalizer.h"
 
 #define _IFT_Quad1PlaneStrain_Name "quad1planestrain"
@@ -55,7 +57,7 @@ class FEI2dQuadLin;
  * This class implements an isoparametric four-node quadrilateral plane-
  * stress structural finite element. Each node has 2 degrees of freedom.
  */
-class Quad1PlaneStrain : public PlaneStrainElement, public ZZNodalRecoveryModelInterface, public SPRNodalRecoveryModelInterface,
+ class Quad1PlaneStrain : public PlaneStrainElement, public ZZNodalRecoveryModelInterface, public SPRNodalRecoveryModelInterface, public NodalAveragingRecoveryModelInterface,
     public SpatialLocalizerInterface,
     public HuertaErrorEstimatorInterface
 {
@@ -82,7 +84,7 @@ public:
                                                                   IntArray &controlNode, IntArray &controlDof,
                                                                   HuertaErrorEstimator :: AnalysisMode aMode);
     virtual void HuertaErrorEstimatorI_computeNmatrixAt(GaussPoint *gp, FloatMatrix &answer);
-
+virtual void NodalAveragingRecoveryMI_computeNodalValue(FloatArray &answer, int node, InternalStateType type, TimeStep *tStep);
 #ifdef __OOFEG
     virtual void drawRawGeometry(oofegGraphicContext &gc, TimeStep *tStep);
     virtual void drawDeformedGeometry(oofegGraphicContext &gc, TimeStep *tStep, UnknownType);

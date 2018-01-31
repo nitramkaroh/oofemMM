@@ -404,7 +404,7 @@ OrthotropicLinearElasticMaterial :: giveTensorRotationMatrix(FloatMatrix &answer
         delete localCoordinateSystem;
         localCoordinateSystem = NULL;
     } else {
-        OOFEM_ERROR("internal error no cs defined");
+      OOFEM_ERROR("internal error no cs defined");
     }
     // t at (i,j) contains cosine of angle between elementAxis(i) and localMaterialAxis(j).
 }

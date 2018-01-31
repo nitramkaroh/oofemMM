@@ -3,6 +3,7 @@ set (sm_element
     Elements/igaelements.C
     Elements/structuralelement.C
     Elements/nlstructuralelement.C
+
     Elements/structural2delement.C
     Elements/structural3delement.C
     Elements/3D/space3delementevaluator.C
@@ -19,6 +20,7 @@ set (sm_element
     Elements/3D/macrolspace.C
     Elements/3D/qspacegrad.C
     Elements/3D/qwedgegrad.C
+    Elements/Bars/structural1delementevaluator.C
     Elements/Bars/truss1d.C 
     Elements/Bars/truss2d.C 
     Elements/Bars/truss3d.C
@@ -84,6 +86,27 @@ set (sm_element
     Elements/quad1platesubsoil.C 
     Elements/tria1platesubsoil.C
     Elements/trwarp.C
+    #Micromorphic continua
+    Elements/Micromorphic/basemicromorphicelement.C
+    Elements/Micromorphic/basesecondgradientelement.C
+    Elements/Micromorphic/Microdil/lspacemicrodil.C
+    Elements/Micromorphic/Microdil/planestrainmicrodil.C
+    Elements/Micromorphic/Microdil/trplanestrainmicrodil.C
+    Elements/Micromorphic/Microdil/qplanestrainmicrodil.C
+    Elements/Micromorphic/Micropolar/planestrainmicropolar.C
+    Elements/Micromorphic/Micropolar/trplanestrainmicropolar.C
+    Elements/Micromorphic/Micropolar/qplanestrainmicropolar.C
+    Elements/Micromorphic/Micropolar/planestressmicropolar.C
+    Elements/Micromorphic/Micropolar/qplanestressmicropolar.C
+    Elements/Micromorphic/Microstretch/planestrainmicrostretch.C
+    Elements/Micromorphic/Micromorphic/planestrainmicromorphic.C
+    Elements/Micromorphic/Microplastic/truss1dmicroplastic.C
+    Elements/Micromorphic/Microplastic/planestrainmicroplastic.C
+    Elements/Micromorphic/Microplastic/qplanestrainmicroplastic.C
+    #Second-gradient continua
+    Elements/Micromorphic/Straindivergence/planestrainstraindivergence.C
+    
+
     #qplanstrssphf.C
     )
 
@@ -129,8 +152,13 @@ set (sm_emodel
     EngineeringModels/diidynamic.C
     EngineeringModels/nldeidynamic.C
     EngineeringModels/incrementallinearstatic.C
-    EngineeringModels/freewarping.C 
+    EngineeringModels/freewarping.C
     EngineeringModels/structuralmaterialevaluator.C
+    EngineeringModels/POD/pod.C  
+    EngineeringModels/POD/hyperreduction.C  
+    EngineeringModels/POD/reducedstate.C  
+    EngineeringModels/POD/podvtkxmlexportmodule.C
+    EngineeringModels/POD/reduceddomainnumberingscheme.C	
     )
 
 set (sm_loads
@@ -210,6 +238,18 @@ set (sm_material
     Materials/graddpmaterialextensioninterface.C
     Materials/rcm2.C
     Materials/isodamagemodel.C
+    #Micromorphic materials
+    Materials/Micromorphic/micromorphicms.C
+    Materials/Micromorphic/micromorphicmaterialextensioninterface.C
+    Materials/Micromorphic/Microdil/microdilmaterial_elastic.C
+    Materials/Micromorphic/Micropolar/micropolarmaterial_elastic.C
+    Materials/Micromorphic/Micromorphic/micromorphicmaterial_elastic.C
+    Materials/Micromorphic/Microplasticity/misesmatmicroplastic.C
+    # Second-gradient materials
+    Materials/Micromorphic/secondgradientms.C
+    Materials/Micromorphic/secondgradientmaterialextensioninterface.C
+
+    #Materials//Viscoplastic/viscoplasticnl.C 
     )
 
 if (USE_PYTHON)
@@ -249,6 +289,7 @@ set (sm_export
     export/dmexportmodule.C
     export/poiexportmodule.C
     export/gnuplotexportmodule.C
+    export/nodalexportmodule.C
     )
 
 set (sm_barrier

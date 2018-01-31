@@ -259,6 +259,10 @@ public:
 
     /// Destructor.
     ~Domain();
+    
+    /// Create reduced domain based on the selected nodes and selected elements
+    Domain *createReducedDomain(int nNodes,IntArray& nodeList, int nElements, IntArray &elementList);
+
 
     /// Returns domain number.
     int giveNumber() { return this->number; }
@@ -711,6 +715,8 @@ private:
      * elements with the given material number.
      */
     void BuildMaterialToElementMap();
+
+    friend class POD;
 };
 } // end namespace oofem
 #endif // domain_h

@@ -219,20 +219,20 @@ void DofManager :: giveMasterDofIDArray(const IntArray &dofIDArry, IntArray &mas
 
 void DofManager :: giveCompleteLocationArray(IntArray &locationArray, const UnknownNumberingScheme &s) const
 {
-    if ( !hasSlaveDofs ) {
-        // prevents some size problem when connecting different elements with
-        // different number of dofs
-        locationArray.resizeWithValues(0, this->giveNumberOfDofs());
-        for ( Dof *dof: *this ) {
-            locationArray.followedBy( s.giveDofEquationNumber( dof ) );
-        }
-    } else {
-        IntArray temp;
-        for ( Dof *dof: *this ) {
-            dof->giveEquationNumbers(temp, s);
-            locationArray.followedBy(temp);
-        }
+  locationArray.resizeWithValues(0, this->giveNumberOfDofs());
+  if ( !hasSlaveDofs ) {
+    // prevents some size problem when connecting different elements with
+    // different number of dofs
+    for ( Dof *dof: *this ) {
+      locationArray.followedBy( s.giveDofEquationNumber( dof ) );
     }
+  } else {
+    IntArray temp;
+    for ( Dof *dof: *this ) {
+      dof->giveEquationNumbers(temp, s);
+      locationArray.followedBy(temp);
+    }
+  }
 }
 
 

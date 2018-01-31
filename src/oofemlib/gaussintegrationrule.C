@@ -43,7 +43,7 @@ namespace oofem {
 
 GaussIntegrationRule :: GaussIntegrationRule(int n, Element *e,
                                              int startIndx, int endIndx, bool dynamic) :
-    IntegrationRule(n, e, startIndx, endIndx, dynamic) { }
+    IntegrationRule(n, e, startIndx, endIndx, dynamic) {}
 
 GaussIntegrationRule :: GaussIntegrationRule(int n, Element *e) :
     IntegrationRule(n, e) { }

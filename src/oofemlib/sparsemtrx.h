@@ -90,6 +90,9 @@ public:
     /// Destructor
     virtual ~SparseMtrx() { }
 
+
+    //  virtual SparseMtrx &operator=(SparseMtrx &mtrx);
+
     /// Return receiver version.
     SparseMtrxVersionType giveVersion() { return this->version; }
 

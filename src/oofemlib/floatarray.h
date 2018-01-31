@@ -407,6 +407,11 @@ public:
      */
     int giveIndexMaxElem(void);
 
+    /**Returns index (between 1 and Size) of element having maximal absolute value in the array
+     */
+    int giveIndexMaxAbsElem(void);
+
+
     /**
      * Computes the dot product (or inner product) of receiver and argument.
      * @param x Vector to contract to receiver.

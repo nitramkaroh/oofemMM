@@ -158,7 +158,15 @@ namespace oofem {
     ENUM_ITEM_WITH_VALUE(IST_TotalShrinkageTensor, 108) \
     ENUM_ITEM_WITH_VALUE(IST_ThermalStrainTensor, 109) \
     ENUM_ITEM_WITH_VALUE(IST_CreepStrainTensor, 110) \
-    ENUM_ITEM_WITH_VALUE(IST_TensileStrength, 111) 
+    ENUM_ITEM_WITH_VALUE(IST_TensileStrength, 111) \
+    ENUM_ITEM_WITH_VALUE(IST_MicromorphicStrainNorm, 112) \
+    ENUM_ITEM_WITH_VALUE(IST_MicromorphicStress, 113) \
+    ENUM_ITEM_WITH_VALUE(IST_MicromorphicStrain, 114) \
+    ENUM_ITEM_WITH_VALUE(IST_MicromorphicRelativeStress, 115) \
+    ENUM_ITEM_WITH_VALUE(IST_MicromorphicRelativeStrain, 116) \
+    ENUM_ITEM_WITH_VALUE(IST_MicromorphicHigherOrderStress, 117) \
+    ENUM_ITEM_WITH_VALUE(IST_MicromorphicHigherOrderStrain, 118)\
+
 
 
 /**

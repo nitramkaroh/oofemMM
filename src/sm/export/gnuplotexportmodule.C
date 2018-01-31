@@ -760,8 +760,9 @@ void GnuplotExportModule::outputMesh(Domain &iDomain)
 
     if(iDomain.giveNumberOfSpatialDimensions() == 2) {
         // Write all element edges to gnuplot
-        for ( auto &el : iDomain.giveElements() ) {
-            int numEdges = el->giveNumberOfNodes();
+      for ( auto &el : iDomain.giveElements() ) {
+	if(el->isActivated()) {
+	  int numEdges = el->giveNumberOfNodes();
 
 
             for ( int edgeIndex = 1; edgeIndex <= numEdges; edgeIndex++ ) {
@@ -780,9 +781,9 @@ void GnuplotExportModule::outputMesh(Domain &iDomain)
 
                 pointArray.push_back(points);
             }
-
-        }
-
+	    
+	}
+      }
 
         double time = 0.0;
 

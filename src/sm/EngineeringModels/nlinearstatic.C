@@ -54,6 +54,9 @@
 #include "dof.h"
 #include "unknownnumberingscheme.h"
 
+///new AL
+#include "node.h"
+
 #ifdef __PARALLEL_MODE
  #include "problemcomm.h"
  #include "communicator.h"
@@ -595,6 +598,13 @@ NonLinearStatic :: updateComponent(TimeStep *tStep, NumericalCmpn cmpn, Domain *
 
     default:
         OOFEM_ERROR("Unknown Type of component.");
+    }
+
+
+    if(this->giveFormulation() == AL) {
+      for ( int i =1; i <= this->giveDomain(1)->giveNumberOfDofManagers();i++) {
+	this->giveDomain(1)->giveNode(i)->computeActualizedCoordinates(tStep);
+      }
     }
 }
 

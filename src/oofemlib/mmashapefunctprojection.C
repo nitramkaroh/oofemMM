@@ -41,6 +41,8 @@
 #include "timestep.h"
 #include "feinterpol.h"
 #include "nodalaveragingrecoverymodel.h"
+#include "zznodalrecoverymodel.h"
+
 
 #include <cstdlib>
 
@@ -58,6 +60,9 @@ void
 MMAShapeFunctProjection :: __init(Domain *dold, IntArray &varTypes, FloatArray &coords, Set &elemSet, TimeStep *tStep, bool iCohesiveZoneGP)
 //(Domain* dold, IntArray& varTypes, GaussPoint* gp, TimeStep* tStep)
 {
+
+  
+
     int nvar = varTypes.giveSize();
     // check time stemp
     if ( stateCounter == tStep->giveSolutionStateCounter() ) {
@@ -70,13 +75,16 @@ MMAShapeFunctProjection :: __init(Domain *dold, IntArray &varTypes, FloatArray &
         this->smootherList.clear();
         this->smootherList.reserve(nvar);
         for ( int ivar = 1; ivar <= nvar; ivar++ ) {
-            this->smootherList.emplace_back( new NodalAveragingRecoveryModel(dold) );
+	  this->smootherList.emplace_back( new NodalAveragingRecoveryModel(dold) ); 
         }
     }
 
     this->intVarTypes = varTypes;
     for ( int ivar = 1; ivar <= nvar; ivar++ ) {
         this->smootherList[ivar-1]->recoverValues(elemSet, ( InternalStateType ) varTypes.at(ivar), tStep);
+	//	this->smootherList[ivar-1]->updateRegionRecoveredValues(const IntArray &regionNodalNumbers, int regionValSize, const FloatArray &rhs);
+
+
     }
 
     // remember time stemp
@@ -123,7 +131,7 @@ MMAShapeFunctProjection :: __mapVariable(FloatArray &answer, FloatArray &coords,
                                          InternalStateType type, TimeStep *tStep)
 {
     FloatArray lcoords, closest;
-    Element *elem = domain->giveSpatialLocalizer()->giveElementClosestToPoint(coords, closest, lcoords);
+    Element *elem = domain->giveSpatialLocalizer()->giveElementClosestToPoint(lcoords, closest, coords);
     if ( !elem ) {
         OOFEM_ERROR("no suitable source found");
     }
@@ -136,8 +144,10 @@ MMAShapeFunctProjection :: __mapVariable(FloatArray &answer, FloatArray &coords,
     if ( indx ) {
         container.reserve(nnodes);
         for ( int inode = 1; inode <= nnodes; inode++ ) {
-            this->smootherList.at(indx)->giveNodalVector( nvec, elem->giveDofManager(inode)->giveNumber() );
-            container.emplace_back(*nvec);
+            this->smootherList.at(indx-1)->giveNodalVector( nvec, elem->giveDofManager(inode)->giveNumber() );
+	    if(nvec) {
+	      container.emplace_back(*nvec);
+	    }
         }
 
         this->interpolateIntVarAt(answer, elem, lcoords, container, type, tStep);

@@ -51,7 +51,7 @@ void NURBSInterpolation :: evalN(FloatArray &answer, const FloatArray &lcoords, 
     IntArray span(nsd);
     double sum = 0.0, val;
     int count, c = 1, i, l, k, m, ind, indx, uind, vind, tind;
-    std :: vector< FloatArray >N;
+    std :: vector< FloatArray >N(nsd);
 
     if ( gw->knotSpan ) {
         span = * gw->knotSpan;
@@ -547,7 +547,7 @@ double NURBSInterpolation :: evaldNdx(FloatMatrix &answer, const FloatArray &lco
 }
 
 
-void NURBSInterpolation :: local2global(FloatArray &answer, const FloatArray &lcoords, const FEICellGeometry &cellgeo)
+  void NURBSInterpolation :: local2global(FloatArray &answer, const FloatArray &lcoords, const FEICellGeometry &cellgeo)
 {
     /* Based on SurfacePoint A4.3 implementation*/
     FEIIGAElementGeometryWrapper *gw = ( FEIIGAElementGeometryWrapper * ) & cellgeo;

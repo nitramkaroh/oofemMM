@@ -65,6 +65,7 @@ public:
      * @see buildInternalStructure
      */
     SkylineUnsym(int n);
+    SkylineUnsym(FloatMatrix &fM);
     /**
      * Constructor. Before any operation an internal profile must be built.
      * @see buildInternalStructure
@@ -73,11 +74,16 @@ public:
     /// Destructor
     virtual ~SkylineUnsym();
 
+    //   SparseMtrx &operator = ( SparseMtrx &mat );
+    void initializeFromFloatMatrix(FloatMatrix &answer);
+
     // Overloaded methods:
     virtual SparseMtrx *GiveCopy() const;
     virtual void times(const FloatArray &x, FloatArray &answer) const;
     virtual void timesT(const FloatArray &x, FloatArray &answer) const;
     virtual void times(double x);
+    virtual void times(const FloatMatrix &B, FloatMatrix &answer) const;
+
     virtual int buildInternalStructure(EngngModel *, int, const UnknownNumberingScheme &s);
     int setInternalStructure(IntArray &a);
     virtual int assemble(const IntArray &loc, const FloatMatrix &mat);

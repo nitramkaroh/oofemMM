@@ -45,12 +45,16 @@
 #include "node.h"
 #include "element.h"
 
+// Ugly include of engng.h
+#include "engngm.h"
+
 namespace oofem {
 class Element;
 class FloatArray;
 class FloatMatrix;
 class IntArray;
 class IntegrationRule;
+
 
 /**
  * Class representing a general abstraction for cell geometry.
@@ -104,7 +108,11 @@ public:
     int giveNumberOfVertices() const;
     inline const FloatArray *giveVertexCoordinates(int i) const
     {
-        return &(elem->giveNode(i)->giveNodeCoordinates());
+      if(elem->giveDomain()->giveEngngModel()->giveFormulation() == AL) {
+	return &(elem->giveNode(i)->giveActualizedNodeCoordinates());
+      } else {
+	return &(elem->giveNode(i)->giveNodeCoordinates());
+      }
     }
 };
 

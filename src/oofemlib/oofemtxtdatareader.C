@@ -98,7 +98,8 @@ InputRecord *
 OOFEMTXTDataReader :: giveInputRecord(InputRecordType typeId, int recordId)
 {
     if ( this->it == this->recordList.end() ) {
-        OOFEM_ERROR("Out of input records, file contents must be missing");
+      OOFEM_ERROR("Can't open input stream (%s)", dataSourceName.c_str());
+      OOFEM_ERROR("Out of input records, file contents must be missing");
     }
     return &(*this->it++);
 }

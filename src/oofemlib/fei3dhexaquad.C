@@ -127,6 +127,22 @@ FEI3dHexaQuad :: global2local(FloatArray &answer, const FloatArray &gcoords, con
     answer.resize( gcoords.giveSize() );
     answer.zero();
 
+    FloatArray eVals, answerR;
+    FloatMatrix eVecs, jacU, jacInvU,jacR;
+    this->giveJacobianMatrixAt(jac, answer, cellgeo);
+    FloatMatrix jac2;
+    jac2.beTProductOf(jac,jac);
+    jac2.jaco_(eVals, eVecs, 10);
+    jacU.resize(3,3);
+    jacU.zero();
+    for ( int i = 1; i < 4; i++ ) {
+      for ( int j = 1; j < 4; j++ ) {
+	jacU.at(i, j) = sqrt(eVals.at(1)) * eVecs.at(i, 1) * eVecs.at(j, 1) + sqrt(eVals.at(2)) *eVecs.at(i, 2) * eVecs.at(j, 2) + sqrt(eVals.at(3)) *eVecs.at(i, 3) * eVecs.at(j, 3);
+      }
+    }
+    jacInvU.beInverseOf(jacU);
+    jacR.beProductOf(jac,jacInvU);
+  
     // apply Newton-Raphson to solve the problem
     for ( int nite = 0; nite < 10; nite++ ) {
         // compute the residual
@@ -140,11 +156,13 @@ FEI3dHexaQuad :: global2local(FloatArray &answer, const FloatArray &gcoords, con
         }
 
         // compute the corrections
+	FloatArray deltaR, resR;
         this->giveJacobianMatrixAt(jac, answer, cellgeo);
-        jac.solveForRhs(res, delta, true);
-
+	jacU.beTProductOf(jacR,jac);
+        jacU.solveForRhs(res, delta, true);	
         // update guess
-        answer.add(delta);
+        answerR.add(delta);
+	answer.beProductOf(jacR,answerR);
     }
     if ( error > convergence_limit ) { // Imperfect, could give false negatives.
         //OOFEM_ERROR("no convergence after 10 iterations");

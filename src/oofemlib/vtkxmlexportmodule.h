@@ -65,6 +65,7 @@
 #define _IFT_VTKXMLExportModule_regionsets "regionsets"
 #define _IFT_VTKXMLExportModule_timescale "timescale"
 #define _IFT_VTKXMLExportModule_particleexportflag "particleexportflag"
+#define _IFT_VTKXMLExportModule_setnumbers "setnumbers"
 //@}
 
 namespace oofem {
@@ -157,7 +158,9 @@ protected:
     IntArray cellVarsToExport;
     /// List of internal variables to export directly in Integration Points (no smoothing to nodes)
     IntArray ipInternalVarsToExport;
-
+    /// List of sets to export
+    IntArray setToExport;
+    
     /// Map from Voigt to full tensor.
     static IntArray redToFull;
 
@@ -192,6 +195,8 @@ public:
     virtual IRResultType initializeFrom(InputRecord *ir);
     virtual void doOutput(TimeStep *tStep, bool forcedOutput = false);
     virtual void initialize();
+    virtual void reInitialize();
+
     virtual void terminate();
     virtual const char *giveClassName() const { return "VTKXMLExportModule"; }
     /**
@@ -203,7 +208,7 @@ public:
     NodalRecoveryModel *giveSmoother();
     /// Returns the smoother for primary variables (nodal averaging).
     NodalRecoveryModel *givePrimVarSmoother();
-
+    void setDefaultElementSet();
 
 #ifdef __VTK_MODULE
     vtkSmartPointer< vtkUnstructuredGrid >fileStream;
@@ -236,6 +241,11 @@ protected:
 
     /// Returns the output stream for given solution step.
     FILE *giveOutputStream(TimeStep *tStep);
+
+  /// Returns the filename for the given time step.
+    std :: string  giveSetOutputFileName(int setNumber);
+    /// Returns the output stream for set.
+    FILE *giveSetOutputStream(int setNumber);
     /**
      * Returns corresponding element cell_type.
      * Some common element types are supported, others can be supported via interface concept.

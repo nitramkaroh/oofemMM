@@ -89,6 +89,7 @@ class OOFEM_EXPORT Node : public DofManager
 protected:
     /// Array storing nodal coordinates.
     FloatArray coordinates;
+    FloatArray actualizedCoordinates;
     /**
      * Triplet defining the local coordinate system in node.
      * Value at position (i,j) represents angle between e'(i) and e(j),
@@ -111,18 +112,26 @@ public:
     virtual bool hasCoordinates() { return true; }
     virtual double giveCoordinate(int i);
     virtual FloatArray *giveCoordinates() { return & coordinates; }
+    virtual FloatArray *giveActualizedCoordinates(){return &actualizedCoordinates;}
+
+
+
 
     /**
      * As giveCoordinates, but non-virtual and therefore faster
      * (because it can be inlined). /ES
      */
     inline const FloatArray &giveNodeCoordinates() const {return coordinates;}
-
+    inline const FloatArray &giveActualizedNodeCoordinates() const {return actualizedCoordinates;}
     /**
      * Sets node coordinates to given array.
      * @param coords New coordinates for node.
      */
     void setCoordinates(FloatArray coords) { this->coordinates = std :: move(coords); }
+
+    void computeActualizedCoordinates(TimeStep *tStep);
+
+
     /**
      * Returns updated ic-th coordinate of receiver. Return value is computed
      * as coordinate + scale * displacement, where corresponding displacement is obtained

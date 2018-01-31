@@ -89,14 +89,15 @@ FEI2dQuadQuad :: evalN(FloatArray &answer, const FloatArray &lcoords, const FEIC
     eta = lcoords.at(2);
 
     answer = {
-        ( 1. + ksi ) * ( 1. + eta ) * 0.25 * ( ksi + eta - 1. ),
-        ( 1. - ksi ) * ( 1. + eta ) * 0.25 * ( -ksi + eta - 1. ),
         ( 1. - ksi ) * ( 1. - eta ) * 0.25 * ( -ksi - eta - 1. ),
         ( 1. + ksi ) * ( 1. - eta ) * 0.25 * ( ksi - eta - 1. ),
-        0.5 * ( 1. - ksi * ksi ) * ( 1. + eta ),
-        0.5 * ( 1. - ksi ) * ( 1. - eta * eta ),
+	( 1. + ksi ) * ( 1. + eta ) * 0.25 * ( ksi + eta - 1. ),
+        ( 1. - ksi ) * ( 1. + eta ) * 0.25 * ( -ksi + eta - 1. ),
+        
         0.5 * ( 1. - ksi * ksi ) * ( 1. - eta ),
-        0.5 * ( 1. + ksi ) * ( 1. - eta * eta )
+        0.5 * ( 1. + ksi ) * ( 1. - eta * eta ),
+	0.5 * ( 1. - ksi * ksi ) * ( 1. + eta ),
+        0.5 * ( 1. - ksi ) * ( 1. - eta * eta ),
     };
 }
 
@@ -173,7 +174,7 @@ FEI2dQuadQuad :: global2local(FloatArray &answer, const FloatArray &gcoords, con
 
         // compute the corrections
         this->giveJacobianMatrixAt(jac, answer, cellgeo);
-        jac.solveForRhs(res, delta, true);
+        jac.solveForRhs(res, delta);
 
         // update guess
         answer.add(delta);
@@ -333,23 +334,25 @@ FEI2dQuadQuad :: giveDerivatives(FloatMatrix &dn, const FloatArray &lc)
     dn.resize(8, 2);
 
     // dn/dxi
-    dn.at(1, 1) =  0.25 * ( 1. + eta ) * ( 2.0 * ksi + eta );
-    dn.at(2, 1) = -0.25 * ( 1. + eta ) * ( -2.0 * ksi + eta );
-    dn.at(3, 1) = -0.25 * ( 1. - eta ) * ( -2.0 * ksi - eta );
-    dn.at(4, 1) =  0.25 * ( 1. - eta ) * ( 2.0 * ksi - eta );
-    dn.at(5, 1) = -ksi * ( 1. + eta );
-    dn.at(6, 1) = -0.5 * ( 1. - eta * eta );
-    dn.at(7, 1) = -ksi * ( 1. - eta );
-    dn.at(8, 1) =  0.5 * ( 1. - eta * eta );
+    dn.at(1, 1) = -0.25 * ( 1. - eta ) * ( -2.0 * ksi - eta );
+    dn.at(2, 1) =  0.25 * ( 1. - eta ) * ( 2.0 * ksi - eta );
+    dn.at(3, 1) =  0.25 * ( 1. + eta ) * ( 2.0 * ksi + eta );
+    dn.at(4, 1) = -0.25 * ( 1. + eta ) * ( -2.0 * ksi + eta );
+    dn.at(5, 1) = -ksi * ( 1. - eta );
+    dn.at(6, 1) =  0.5 * ( 1. - eta * eta );
+    dn.at(7, 1) = -ksi * ( 1. + eta );
+    dn.at(8, 1) = -0.5 * ( 1. - eta * eta );
+    
 
-    dn.at(1, 2) =  0.25 * ( 1. + ksi ) * ( 2.0 * eta + ksi );
-    dn.at(2, 2) =  0.25 * ( 1. - ksi ) * ( 2.0 * eta - ksi );
-    dn.at(3, 2) = -0.25 * ( 1. - ksi ) * ( -2.0 * eta - ksi );
-    dn.at(4, 2) = -0.25 * ( 1. + ksi ) * ( -2.0 * eta + ksi );
-    dn.at(5, 2) =  0.5 * ( 1. - ksi * ksi );
-    dn.at(6, 2) = -eta * ( 1. - ksi );
-    dn.at(7, 2) = -0.5 * ( 1. - ksi * ksi );
-    dn.at(8, 2) = -eta * ( 1. + ksi );
+    dn.at(1, 2) = -0.25 * ( 1. - ksi ) * ( -2.0 * eta - ksi );
+    dn.at(2, 2) = -0.25 * ( 1. + ksi ) * ( -2.0 * eta + ksi );
+    dn.at(3, 2) =  0.25 * ( 1. + ksi ) * ( 2.0 * eta + ksi );
+    dn.at(4, 2) =  0.25 * ( 1. - ksi ) * ( 2.0 * eta - ksi );
+    dn.at(5, 2) = -0.5 * ( 1. - ksi * ksi );
+    dn.at(6, 2) = -eta * ( 1. + ksi );
+    dn.at(7, 2) =  0.5 * ( 1. - ksi * ksi );
+    dn.at(8, 2) = -eta * ( 1. - ksi );
+    
 }
 
 

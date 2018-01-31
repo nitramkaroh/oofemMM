@@ -120,6 +120,7 @@ public:
     bool testSubStepOutput() { return this->tstep_substeps_out_flag; }
 
     virtual void initialize() { }
+    virtual void reInitialize() { }
     /**
      * Terminates the receiver.
      * The terminating messages should be printed.

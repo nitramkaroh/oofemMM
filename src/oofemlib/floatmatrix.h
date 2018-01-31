@@ -64,6 +64,8 @@ namespace oofem {
 class FloatArray;
 class IntArray;
 class DataStream;
+class SkylineUnsym;
+
 
 /**
  * Implementation of matrix containing floating point numbers. FloatMatrix can grow and shrink
@@ -534,7 +536,8 @@ public:
      * @param name Display name of reciever.
      */    
     void printYourself(const std::string name) const;
-    
+    void printYourself(FILE*  name) const;
+
     /// Higher accuracy than printYourself.
     void pY() const;
 
@@ -554,6 +557,13 @@ public:
     void beMatrixFormOfStress(const FloatArray &aArray);
     void beMatrixForm(const FloatArray &aArray);
 
+    void beSkewMatrixForm(const FloatArray &aArray);
+    void giveMatrixOfAxialVector(const FloatArray &aArray);
+    void beSkewProjectionMatrix();
+    void beSymProjectionMatrix();
+
+
+
     /**
      * Swaps the indices in the 6x6 matrix such that it converts between OOFEM's
      * and Abaqus' way of writing matrices. Currently used to convert the 6x6 Jacobian
@@ -567,6 +577,8 @@ public:
     int givePackSize(DataStream &buff) const;
 
     friend std :: ostream &operator<<(std :: ostream &out, const FloatMatrix &r);
+
+    //void toSkylineU(SkylineUnsym &skyMatrix);
 
 
 #ifdef BOOST_PYTHON

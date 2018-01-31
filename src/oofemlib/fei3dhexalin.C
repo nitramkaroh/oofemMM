@@ -215,8 +215,73 @@ FEI3dHexaLin :: global2local(FloatArray &answer, const FloatArray &coords, const
         }
     }
 
+    FloatArray answer2;
+    this->global2local2(answer2, coords, cellgeo);
+
     return inside;
+
+  
+
+
 }
+
+
+
+int
+FEI3dHexaLin :: global2local2(FloatArray &answer, const FloatArray &gcoords, const FEICellGeometry &cellgeo)
+{
+  FloatArray res, delta, guess;
+  FloatMatrix jac;
+  double convergence_limit, error = 0.0;
+  
+  // find a suitable convergence limit
+  convergence_limit = 1e-6;
+  
+  // setup initial guess
+  answer.resize( gcoords.giveSize() );
+  answer.zero();
+  
+  // apply Newton-Raphson to solve the problem
+  for ( int nite = 0; nite < 10; nite++ ) {
+    // compute the residual
+    this->local2global(guess, answer, cellgeo);
+    res.beDifferenceOf(gcoords,guess);
+    
+    // check for convergence
+    error = res.computeNorm();
+    if ( error < convergence_limit ) {
+      break;
+    }
+    
+    // compute the corrections
+    this->giveJacobianMatrixAt(jac, answer, cellgeo);
+    jac.solveForRhs(res, delta);
+    // update guess
+    answer.add(delta);
+  }
+  if ( error > convergence_limit ) { // Imperfect, could give false negatives.
+    //OOFEM_ERROR("no convergence after 10 iterations");
+    answer.zero();
+    return false;
+  }
+  
+  // check limits for each local coordinate [-1,1] for quadrilaterals. (different for other elements, typically [0,1]).
+  bool inside = true;
+  for ( int i = 1; i <= answer.giveSize(); i++ ) {
+    if ( answer.at(i) < ( -1. - POINT_TOL ) ) {
+      answer.at(i) = -1.;
+      inside = false;
+    } else if ( answer.at(i) > ( 1. + POINT_TOL ) ) {
+      answer.at(i) = 1.;
+      inside = false;
+    }
+  }
+  
+  return inside;
+}
+  
+
+
 
 
 double

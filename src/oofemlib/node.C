@@ -225,8 +225,9 @@ Node :: updateYourself(TimeStep *tStep)
     DofManager :: updateYourself(tStep);
 
     fMode mode = domain->giveEngngModel()->giveFormulation();
-
+    FloatArray coord;
     if ( mode == AL ) { // updated Lagrange
+      coord = actualizedCoordinates;
         for ( Dof *d: *this ) {
             DofIDItem id = d->giveDofID();
             if ( id == D_u || id == D_v || id == D_w ) {
@@ -239,6 +240,26 @@ Node :: updateYourself(TimeStep *tStep)
         }
     }
 }
+
+
+void
+Node :: computeActualizedCoordinates(TimeStep *tStep)
+//
+// returns coordinate + displacement
+//
+{
+    if ( tStep->isTheCurrentTimeStep() ) {
+        FloatArray vec;
+        actualizedCoordinates = this->coordinates;
+        this->giveUnknownVectorOfType(vec, DisplacementVector, VM_Incremental, tStep);
+        for ( int i = 1; i <= actualizedCoordinates.giveSize(); i++ ) {
+            actualizedCoordinates.at(i) += vec.at(i);
+        }
+    }
+
+}
+
+
 
 
 double

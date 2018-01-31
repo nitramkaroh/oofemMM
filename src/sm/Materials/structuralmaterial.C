@@ -348,7 +348,8 @@ StructuralMaterial :: giveFirstPKStressVector_PlaneStress(FloatArray &answer, Ga
     StructuralMaterialStatus *status = static_cast< StructuralMaterialStatus * >( this->giveStatus(gp) );
 
     IntArray F_control, P_control; // Determines which components are controlled by F and P resp.
-    FloatArray vF, increment_vF, vP, vP_control;
+    FloatArray vF, vF_control, vP, vP_control;
+    FloatArray increment_vF;
     FloatMatrix tangent, tangent_Pcontrol;
     // Iterate to find full vF.
     StructuralMaterial :: giveVoigtVectorMask(F_control, _PlaneStress);

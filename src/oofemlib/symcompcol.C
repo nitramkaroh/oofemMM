@@ -213,7 +213,7 @@ void SymCompCol :: times(const FloatArray &x, FloatArray &answer) const
             answer( rowind_(t) ) += val_(t) * rhs; // column loop
             sum += val_(t) * x( rowind_(t) ); // row loop
         }
-
+		
         answer(j) += sum;
         answer(j) += val_( colptr_(j) ) * rhs; // diagonal
     }

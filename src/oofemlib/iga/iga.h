@@ -81,12 +81,15 @@ class OOFEM_EXPORT IGAIntegrationElement : public GaussIntegrationRule
 {
 protected:
     IntArray knotSpan;     // knot_span(nsd)
+    /// Activation flag
+    bool isActivatedFlag;    
 public:
     IGAIntegrationElement(int _n, Element * _e, IntArray & _knotSpan) :
         GaussIntegrationRule(_n, _e, 0, 0, false),
-        knotSpan(_knotSpan) { }
+	  knotSpan(_knotSpan) { }
     const IntArray *giveKnotSpan() { return & this->knotSpan; }
     void setKnotSpan1(IntArray &src) { this->knotSpan = src; }
+   
 };
 
 
@@ -111,6 +114,9 @@ public:
 #ifdef __OOFEG
     virtual void  drawRawGeometry(oofegGraphicContext &gc, TimeStep *tStep);
 #endif
+
+public:
+    virtual Element_Geometry_Type giveGeometryType( ) const{return EGT_Composite;}
 
 protected:
     virtual int giveNsd() = 0; // this info is available also from interpolation. Do we need it here ???

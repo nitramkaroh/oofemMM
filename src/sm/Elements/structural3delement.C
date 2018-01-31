@@ -54,7 +54,11 @@ Structural3DElement :: computeBmatrixAt(GaussPoint *gp, FloatMatrix &answer, int
 // luated at gp.
 // B matrix  -  6 rows : epsilon-X, epsilon-Y, epsilon-Z, gamma-YZ, gamma-ZX, gamma-XY  :
 {
+
+
     FEInterpolation *interp = this->giveInterpolation();
+
+
     FloatMatrix dNdx; 
     interp->evaldNdx( dNdx, gp->giveNaturalCoordinates(), FEIElementGeometryWrapper(this) );
     

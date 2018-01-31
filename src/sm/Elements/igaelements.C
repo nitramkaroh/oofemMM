@@ -53,13 +53,37 @@
 #endif
 
 namespace oofem {
+REGISTER_Element(NURBS1DElement);
 REGISTER_Element(BsplinePlaneStressElement);
 REGISTER_Element(NURBSPlaneStressElement);
 REGISTER_Element(TSplinePlaneStressElement);
 REGISTER_Element(NURBSSpace3dElement);
 
 
-BsplinePlaneStressElement :: BsplinePlaneStressElement(int n, Domain *aDomain) : IGAElement(n, aDomain), PlaneStressStructuralElementEvaluator(), interpolation(2) { }
+
+NURBS1DElement :: NURBS1DElement(int n, Domain *aDomain) : IGAElement(n, aDomain), Structural1DElementEvaluator(), VTKXMLExportModuleElementInterface(), interpolation(1) { }
+
+
+IRResultType NURBS1DElement :: initializeFrom(InputRecord *ir)
+{
+    //PlaneStressStructuralElementEvaluator::initializeFrom(ir);
+    return IGAElement :: initializeFrom(ir);
+}
+
+
+int NURBS1DElement :: checkConsistency()
+{
+    NURBSInterpolation *interpol = static_cast< NURBSInterpolation * >( this->giveInterpolation() );
+    if ( giveNumberOfDofManagers() != interpol->giveNumberOfControlPoints(1) ) {
+        OOFEM_WARNING("number of control points mismatch");
+        return 0;
+    }
+    return 1;
+}
+
+  
+
+BsplinePlaneStressElement :: BsplinePlaneStressElement(int n, Domain *aDomain) : IGAElement(n, aDomain), PlaneStressStructuralElementEvaluator(), VTKXMLExportModuleElementInterface(), interpolation(2) { }
 
 
 IRResultType BsplinePlaneStressElement :: initializeFrom(InputRecord *ir)
@@ -81,7 +105,7 @@ int BsplinePlaneStressElement :: checkConsistency()
 
 
 
-NURBSPlaneStressElement :: NURBSPlaneStressElement(int n, Domain *aDomain) : IGAElement(n, aDomain), PlaneStressStructuralElementEvaluator(), interpolation(2) { }
+NURBSPlaneStressElement :: NURBSPlaneStressElement(int n, Domain *aDomain) : IGAElement(n, aDomain), PlaneStressStructuralElementEvaluator(), VTKXMLExportModuleElementInterface(), interpolation(2) { }
 
 
 IRResultType NURBSPlaneStressElement :: initializeFrom(InputRecord *ir)
@@ -126,6 +150,573 @@ int NURBSSpace3dElement :: checkConsistency()
     }
     return 1;
 }
+
+
+// HUHU should be implemented by IGA element (it is the same for Bspline NURBS and TSpline)
+// however in such a case it should be generalized in terms of appropriately multiplying
+// nseq for those integration elements which span more tham just a single knot span
+// the reason is to ensure compatible division to quads over which scalar quantity is interpolated
+// bilinearly !!!
+void
+BsplinePlaneStressElement :: giveCompositeExportData(IntArray &primaryVarsToExport, IntArray &internalVarsToExport,
+        std::vector<FloatArray> &nodeCoords, std::vector<IntArray> &cellNodes, IntArray &cellTypes, 
+        std::vector<FloatArray> &primaryVars, std::vector<FloatArray> &cellVars, TimeStep *tStep )
+{
+  FloatArray c [ 4 ], cg [ 4 ], u;
+  FEInterpolation *interp = this->giveInterpolation();
+  const double *const *knotVector = interp->giveKnotVector();
+  const IntArray *span;
+  int nsd = this->giveNsd();
+
+
+  StructuralElementEvaluator :: computeVectorOf(VM_Total, tStep, u);
+
+  // loop over individual integration rules (i.e., knot spans)
+  for ( auto &iRule: integrationRulesArray ) {
+    span = iRule->giveKnotSpan();
+    if ( nsd == 2 ) {
+      // divide span locally to get finer geometry rep.
+      int i, j, k, nseg = 100;
+      double du = ( knotVector [ 0 ] [ span->at(1) + 1 ] - knotVector [ 0 ] [ span->at(1) ] ) / nseg;
+      double dv = ( knotVector [ 1 ] [ span->at(2) + 1 ] - knotVector [ 1 ] [ span->at(2) ] ) / nseg;
+      for ( i = 1; i <= nseg; i++ ) {
+	for ( j = 1; j <= nseg; j++ ) {
+	  c [ 0 ].at(1) = knotVector [ 0 ] [ span->at(1) ] + du * ( i - 1 );
+	  c [ 0 ].at(2) = knotVector [ 1 ] [ span->at(2) ] + dv * ( j - 1 );
+	  c [ 1 ].at(1) = knotVector [ 0 ] [ span->at(1) ] + du * i;
+	  c [ 1 ].at(2) = knotVector [ 1 ] [ span->at(2) ] + dv * ( j - 1 );
+	  c [ 2 ].at(1) = knotVector [ 0 ] [ span->at(1) ] + du * i;
+	  c [ 2 ].at(2) = knotVector [ 1 ] [ span->at(2) ] + dv * j;
+	  c [ 3 ].at(1) = knotVector [ 0 ] [ span->at(1) ] + du * ( i - 1 );
+	  c [ 3 ].at(2) = knotVector [ 1 ] [ span->at(2) ] + dv * j;
+	  for ( k = 0; k < 4; k++ ) {
+	    interp->local2global( cg [ k ], c [ k ], FEIIGAElementGeometryWrapper( this, iRule->giveKnotSpan() ) );
+	    /*    p [ k ].x = ( FPNum ) cg [ k ].at(1);
+	    p [ k ].y = ( FPNum ) cg [ k ].at(2);
+	    p [ k ].z = 0.;*/
+	    
+	    /*
+	    //move sampling gp out of boundary to overcome degeneracy on quarter plate with hole modelled by single patch
+	    if ( c [ k ].at(1) > 0.99999 && c [ k ].at(2) > 0.495 && c [ k ].at(2) < 0.505 ) {
+	    c [ k ].at(1) += sign [ k ].at(1) * du / 10.0;
+	    c [ k ].at(2) += sign [ k ].at(2) * dv / 10.0;
+	    }*/
+	    
+	    
+	    // create a dummy ip's
+	    //	    FloatArray *cc = new FloatArray(c [ k ]);         // constructor of gp does not make its own copy
+	    GaussPoint gp(iRule.get(), 999, c [ k ], 1.0, _PlaneStress);
+	    int n = primaryVarsToExport.giveSize();
+	    UnknownType type;
+	    for ( int i = 1; i <= n; i++ ) {
+	      type = ( UnknownType ) primaryVarsToExport.at(i);
+	      if ( ( type == DisplacementVector ) ) {
+		OOFEM_LOG_INFO("\n         Computing element displacement\n");
+		primaryVars.push_back(u);
+	      } else {
+		//	      OOFEM_ERROR( "VTKXMLExportModule::exportPrimVarAs: unsupported UnknownType %s", __UnknownTypeToString(type) );
+	      }
+	    }
+	    
+	  InternalStateType isttype;	  
+	  for ( int iv = 1; iv <= n; iv++ ) {
+	    isttype = ( InternalStateType ) internalVarsToExport.at(iv);
+	    if ( isttype == IST_StrainTensor ) {
+	      FloatArray strain;
+	      this->computeStrainVector(strain, & gp, tStep, u);
+	      cellVars.push_back(strain);
+	    } else if ( isttype == IST_StressTensor ) {
+	      FloatArray stress, strain;
+	      this->computeStrainVector(strain, & gp, tStep, u);
+	      this->computeStressVector(stress, strain, & gp, tStep);
+	      cellVars.push_back(stress);
+	    } else {
+	      fprintf( stderr, "VTKXMLExportModule::exportIntVars: unsupported variable type %s\n", __InternalStateTypeToString(isttype) );
+	    }
+	  }
+	  }
+	}
+      }
+    }
+  }
+}
+
+void
+BsplinePlaneStressElement :: giveCompositeExportData(std::vector< VTKPiece > &vtkPieces, IntArray &primaryVarsToExport, IntArray &internalVarsToExport, IntArray cellVarsToExport, TimeStep *tStep)
+
+{
+  vtkPieces.resize(1);
+  FEInterpolation *interp = this->giveInterpolation();
+  const double *const *knotVector = interp->giveKnotVector();
+  int nsd = this->giveNsd();
+  int nseg = 100; 
+  int numSpanCells = (nseg) * (nseg);
+  int numCellNodes = 4;   // linear quads
+  int numCells = numSpanCells * this->giveNumberOfIntegrationRules();
+  int numTotalNodes = numCellNodes*numCells;
+  vtkPieces[0].setNumberOfCells(numCells);
+  vtkPieces[0].setNumberOfNodes(numTotalNodes);
+
+  for ( auto &iRule: integrationRulesArray ) {
+    const IntArray *span;
+    span = iRule->giveKnotSpan();
+
+    std::vector <FloatArray> nodeCoords;
+    FloatArray parametricCentriod;
+    int val    = 1;
+    int offset = 0;
+    int currentCell = 1;
+    IntArray nodes(numCellNodes);
+    nodeCoords.resize(4);
+    // Compute fictious node coords
+    int nodeNum = 1;
+    for ( int iCell = 1; iCell <= numSpanCells; iCell++ ) {
+      this->giveFictiousNodeCoordsForExport(nodeCoords, parametricCentriod, knotVector, span, iCell, nseg);               
+      for ( int node = 1; node <= numCellNodes; node++ ) {
+	vtkPieces[0].setNodeCoords(nodeNum, nodeCoords[node-1] );
+	nodeNum += 1;
+      }
+      // Connectivity       
+      for ( int i = 1; i <= numCellNodes; i++ ) {
+	nodes.at(i) = val++;
+      }
+      vtkPieces[0].setConnectivity(iCell, nodes);
+      
+      // Offset
+      offset += numCellNodes;
+      vtkPieces[0].setOffset(iCell, offset);
+      
+      // Cell types
+      vtkPieces[0].setCellType(iCell, 9); // Linear quad
+      
+      vtkPieces[0].setNumberOfCellVarsToExport(cellVarsToExport.giveSize(), numCells);
+
+      FloatArray u;
+      StructuralElementEvaluator :: computeVectorOf(VM_Total, tStep, u);
+
+
+      for ( int i = 1; i <= cellVarsToExport.giveSize(); i++ ) {
+	InternalStateType type = ( InternalStateType ) cellVarsToExport.at(i);
+
+	
+	//	FloatArray fCoords = {(nodeCoords[1].at(1)-nodeCoords[0].at(1))/2,(nodeCoords[1].at(2)-nodeCoords[0].at(2))/2};
+	//	GaussPoint *gp = new GaussPoint(iRule.get(), 999, fCoords, 1.0, _PlaneStress);
+	GaussPoint *gp = new GaussPoint(iRule.get(), 999, parametricCentriod, 1.0, _PlaneStress);
+	FloatArray val;
+	if(type == IST_StrainTensor) {
+	  FloatArray strain;
+	  this->computeStrainVector(strain, gp, tStep, u);
+	  StructuralMaterial :: giveFullSymVectorForm(val, strain, _PlaneStress);
+	  val.resize(9);
+	  val.at(7) = val.at(4);
+	  val.at(8) = val.at(5);
+	  val.at(9) = val.at(6);
+
+	} else if(type == IST_StressTensor) {
+	  FloatArray strain, stress, fullStress;
+	  this->computeStrainVector(strain, gp, tStep, u);
+	  this->computeStressVector(stress, strain, gp, tStep);
+	  StructuralMaterial :: giveFullSymVectorForm(val, stress, _PlaneStress);
+	  val.resize(9);
+	  val.at(7) = val.at(4);
+	  val.at(8) = val.at(5);
+	  val.at(9) = val.at(6);
+
+	}
+	vtkPieces[0].setCellVar(i, iCell, val);
+	//	delete gp;
+      }
+    }
+  }
+}
+
+
+
+void 
+BsplinePlaneStressElement :: giveFictiousNodeCoordsForExport(std::vector<FloatArray> &nodes, FloatArray &parametricCentriod, const double *const *knotVector,   const IntArray *span, int iCell, int nSeg) 
+{
+
+  FEInterpolation *interp = this->giveInterpolation();
+
+
+  double du = ( knotVector [ 0 ] [ span->at(1) + 1 ] - knotVector [ 0 ] [ span->at(1) ] ) / nSeg;
+  double dv = ( knotVector [ 1 ] [ span->at(2) + 1 ] - knotVector [ 1 ] [ span->at(2) ] ) / nSeg;
+  
+
+  int iX = iCell%nSeg;
+  int iY = (iCell-1)/nSeg + 1;
+  
+  FloatArray c [ 4 ];
+  parametricCentriod.resize(2);
+
+  for ( int j = 0; j < 4; j++ ) {
+    c [ j ].resize(2);
+  }
+  c [ 0 ].at(1) = knotVector [ 0 ] [ span->at(1) ] + du * ( iX - 1 );
+  c [ 0 ].at(2) = knotVector [ 1 ] [ span->at(2) ] + dv * ( iY - 1 );
+  c [ 1 ].at(1) = knotVector [ 0 ] [ span->at(1) ] + du * iX;
+  c [ 1 ].at(2) = knotVector [ 1 ] [ span->at(2) ] + dv * ( iY - 1 );
+  c [ 2 ].at(1) = knotVector [ 0 ] [ span->at(1) ] + du * iX;
+  c [ 2 ].at(2) = knotVector [ 1 ] [ span->at(2) ] + dv * iY;
+  c [ 3 ].at(1) = knotVector [ 0 ] [ span->at(1) ] + du * ( iX - 1 );
+  c [ 3 ].at(2) = knotVector [ 1 ] [ span->at(2) ] + dv * iY;
+
+  parametricCentriod.at(1) = c [ 0 ].at(1) + c [ 1 ].at(1) + c [ 2 ].at(1) + c [ 3 ].at(1);
+  parametricCentriod.at(2) = c [ 0 ].at(2) + c [ 1 ].at(2) + c [ 2 ].at(2) + c [ 3 ].at(2);
+  for ( int k = 0; k < 4; k++ ) {
+    nodes[k].resize(3);
+    interp->local2global( nodes [ k ], c [ k ], FEIIGAElementGeometryWrapper( this, span ) );
+  }
+  
+}
+
+void
+NURBSPlaneStressElement :: giveCompositeExportData(IntArray &primaryVarsToExport, IntArray &internalVarsToExport,
+        std::vector<FloatArray> &nodeCoords, std::vector<IntArray> &cellNodes, IntArray &cellTypes, 
+        std::vector<FloatArray> &primaryVars, std::vector<FloatArray> &cellVars, TimeStep *tStep )
+{
+  FloatArray c [ 4 ], cg [ 4 ], u;
+  FEInterpolation *interp = this->giveInterpolation();
+  const double *const *knotVector = interp->giveKnotVector();
+  const IntArray *span;
+  int nsd = this->giveNsd();
+
+
+  StructuralElementEvaluator :: computeVectorOf(VM_Total, tStep, u);
+
+  // loop over individual integration rules (i.e., knot spans)
+  for ( auto &iRule: integrationRulesArray ) {
+    span = iRule->giveKnotSpan();
+    if ( nsd == 2 ) {
+      // divide span locally to get finer geometry rep.
+      int i, j, k, nseg = 100;
+      double du = ( knotVector [ 0 ] [ span->at(1) + 1 ] - knotVector [ 0 ] [ span->at(1) ] ) / nseg;
+      double dv = ( knotVector [ 1 ] [ span->at(2) + 1 ] - knotVector [ 1 ] [ span->at(2) ] ) / nseg;
+      for ( i = 1; i <= nseg; i++ ) {
+	for ( j = 1; j <= nseg; j++ ) {
+	  c [ 0 ].at(1) = knotVector [ 0 ] [ span->at(1) ] + du * ( i - 1 );
+	  c [ 0 ].at(2) = knotVector [ 1 ] [ span->at(2) ] + dv * ( j - 1 );
+	  c [ 1 ].at(1) = knotVector [ 0 ] [ span->at(1) ] + du * i;
+	  c [ 1 ].at(2) = knotVector [ 1 ] [ span->at(2) ] + dv * ( j - 1 );
+	  c [ 2 ].at(1) = knotVector [ 0 ] [ span->at(1) ] + du * i;
+	  c [ 2 ].at(2) = knotVector [ 1 ] [ span->at(2) ] + dv * j;
+	  c [ 3 ].at(1) = knotVector [ 0 ] [ span->at(1) ] + du * ( i - 1 );
+	  c [ 3 ].at(2) = knotVector [ 1 ] [ span->at(2) ] + dv * j;
+	  for ( k = 0; k < 4; k++ ) {
+	    interp->local2global( cg [ k ], c [ k ], FEIIGAElementGeometryWrapper( this, iRule->giveKnotSpan() ) );
+	    /*    p [ k ].x = ( FPNum ) cg [ k ].at(1);
+	    p [ k ].y = ( FPNum ) cg [ k ].at(2);
+	    p [ k ].z = 0.;*/
+	    
+	    /*
+	    //move sampling gp out of boundary to overcome degeneracy on quarter plate with hole modelled by single patch
+	    if ( c [ k ].at(1) > 0.99999 && c [ k ].at(2) > 0.495 && c [ k ].at(2) < 0.505 ) {
+	    c [ k ].at(1) += sign [ k ].at(1) * du / 10.0;
+	    c [ k ].at(2) += sign [ k ].at(2) * dv / 10.0;
+	    }*/
+	    
+	    
+	    // create a dummy ip's
+	    // FloatArray *cc = new FloatArray(c [ k ]);         // constructor of gp does not make its own copy
+	    GaussPoint gp(iRule.get(), 999, c[ k ], 1.0, _PlaneStress);
+	    int n = primaryVarsToExport.giveSize();
+	    UnknownType type;
+	    for ( int i = 1; i <= n; i++ ) {
+	      type = ( UnknownType ) primaryVarsToExport.at(i);
+	      if ( ( type == DisplacementVector ) ) {
+		OOFEM_LOG_INFO("\n         Computing element displacement\n");
+		primaryVars.push_back(u);
+	      } else {
+		//	      OOFEM_ERROR( "VTKXMLExportModule::exportPrimVarAs: unsupported UnknownType %s", __UnknownTypeToString(type) );
+	      }
+	    }
+	    
+	  InternalStateType isttype;	  
+	  for ( int iv = 1; iv <= n; iv++ ) {
+	    isttype = ( InternalStateType ) internalVarsToExport.at(iv);
+	    if ( isttype == IST_StrainTensor ) {
+	      FloatArray strain;
+	      this->computeStrainVector(strain, & gp, tStep, u);
+	      cellVars.push_back(strain);
+	    } else if ( isttype == IST_StressTensor ) {
+	      FloatArray stress, strain;
+	      this->computeStrainVector(strain, & gp, tStep, u);
+	      this->computeStressVector(stress, strain, & gp, tStep);
+	      cellVars.push_back(stress);
+	    } else {
+	      fprintf( stderr, "VTKXMLExportModule::exportIntVars: unsupported variable type %s\n", __InternalStateTypeToString(isttype) );
+	    }
+	  }
+	  }
+	}
+      }
+    }
+  }
+}
+
+void
+NURBSPlaneStressElement :: giveCompositeExportData(std::vector< VTKPiece > &vtkPieces, IntArray &primaryVarsToExport, IntArray &internalVarsToExport, IntArray cellVarsToExport, TimeStep *tStep)
+
+{
+  vtkPieces.resize(1);
+  FEInterpolation *interp = this->giveInterpolation();
+  const double *const *knotVector = interp->giveKnotVector();
+  int nsd = this->giveNsd();
+  int nseg = 1; 
+  int numSpanCells = (nseg) * (nseg);
+ 
+  int numCellNodes = 4;   // linear quads
+  int numberOfActiveIntegrationRules = 0;
+  for ( auto &iRule: integrationRulesArray ) {
+    if(iRule->isActivated())
+      numberOfActiveIntegrationRules++;
+  }
+  int numCells = numSpanCells * numberOfActiveIntegrationRules;
+  int numTotalNodes = numCellNodes*numCells;
+  vtkPieces[0].setNumberOfCells(numCells);
+  vtkPieces[0].setNumberOfNodes(numTotalNodes);
+
+
+
+    std::vector <FloatArray> nodeCoords, localNodeCoords;
+    int val    = 1;
+    int offset = 0;
+    int currentCell = 0;
+    IntArray nodes(numCellNodes);
+    nodeCoords.resize(4);
+    localNodeCoords.resize(4);
+    FloatArray parametricCentroid;
+    // Compute fictious node coords
+    int nodeNum = 1;
+
+
+  for ( auto &iRule: integrationRulesArray ) {
+    if(!iRule->isActivated())
+      continue;
+    const IntArray *span;
+    span = iRule->giveKnotSpan();
+   
+    
+    for ( int iCell = 1; iCell <= numSpanCells; iCell++ ) {
+      currentCell++;
+      this->giveFictiousNodeCoordsForExport(nodeCoords, localNodeCoords, knotVector, span, iCell, nseg);               
+      for ( int node = 1; node <= numCellNodes; node++ ) {
+	vtkPieces[0].setNodeCoords(nodeNum, nodeCoords[node-1] );
+	nodeNum += 1;
+      }
+      // Connectivity       
+      for ( int i = 1; i <= numCellNodes; i++ ) {
+	nodes.at(i) = val++;
+      }
+      vtkPieces[0].setConnectivity(currentCell, nodes);
+      
+      // Offset
+      offset += numCellNodes;
+      vtkPieces[0].setOffset(currentCell, offset);
+      
+      // Cell types
+      vtkPieces[0].setCellType(currentCell, 9); // Linear quad
+      vtkPieces[0].setNumberOfCellVarsToExport(cellVarsToExport.giveSize(), numCells);     
+      vtkPieces[0].setNumberOfInternalVarsToExport(internalVarsToExport.giveSize(), numCells*numCellNodes);
+      vtkPieces[0].setNumberOfPrimaryVarsToExport(primaryVarsToExport.giveSize(),numCells*numCellNodes);
+    }
+  }
+
+
+  // Export primary variables
+  for ( int i = 1; i <= primaryVarsToExport.giveSize(); i++ ) {
+    FloatArray val, d;
+    UnknownType type = ( UnknownType ) primaryVarsToExport.at(i);
+    nodeNum = 1;
+    currentCell = 1;
+    int iR = 0;
+    for( auto &iRule: integrationRulesArray) {
+      iR++;
+      if(!iRule->isActivated())
+	continue;
+      const IntArray *span;
+      span = iRule->giveKnotSpan();
+      for ( int subCell = 1; subCell <= numSpanCells; subCell++ ) {
+	  StructuralElementEvaluator :: computeVectorOf(VM_Total, tStep, d);  
+	  this->giveFictiousNodeCoordsForExport(nodeCoords, localNodeCoords, knotVector, span, subCell, nseg);               
+
+	  for ( int j = 0; j < numCellNodes; j++ ) {
+	    FloatArray localCoords = localNodeCoords.at(j);
+	    GaussPoint *gp = new GaussPoint(iRule.get(), 999, localCoords, 1.0, _PlaneStress);
+
+	    if(type == DisplacementVector) {
+	      FloatArray displacement;
+	      StructuralElementEvaluator :: computeVectorOf(VM_Total, tStep, d); 		  
+	      this->computeDisplacementVector(displacement, gp, tStep, d);
+	      displacement.resizeWithValues(3);
+	      vtkPieces[0].setPrimaryVarInNode(i, nodeNum, displacement);
+	      currentCell++;
+	      nodeNum++;
+	    } 
+	  } 
+      }
+    }
+  }
+
+
+
+
+
+     
+  FloatArray u,d;
+  // cell variables
+  for ( int i = 1; i <= cellVarsToExport.giveSize(); i++ ) {
+    FloatArray val;
+    InternalStateType type = ( InternalStateType ) cellVarsToExport.at(i);
+    nodeNum = 1;
+    currentCell = 1;
+    for( auto &iRule: integrationRulesArray) {
+      if(!iRule->isActivated())
+	continue;
+      const IntArray *span;
+      span = iRule->giveKnotSpan();
+      for ( int subCell = 1; subCell <= numSpanCells; subCell++ ) {
+	//if ( type == IST_StrainTensor ) { 
+	  FloatMatrix N;
+	  StructuralElementEvaluator :: computeVectorOf(VM_Total, tStep, d);  
+	  this->giveFictiousNodeCoordsForExport(nodeCoords, localNodeCoords, knotVector, span, subCell, nseg);               
+
+	  FloatArray centroidCoords(2);
+	  centroidCoords.zero();
+	  for ( int j = 0; j < numCellNodes; j++ ) {
+	    FloatArray localCoords = localNodeCoords.at(j);
+	    centroidCoords.at(1) += localCoords.at(1);
+	    centroidCoords.at(2) += localCoords.at(2);
+	  }
+	  centroidCoords.times(0.25);
+	  
+	  GaussPoint *gp = new GaussPoint(iRule.get(), 999, centroidCoords, 1.0, _PlaneStress);
+	  
+	  if(type == IST_StrainTensor) {
+	    FloatArray strain;
+	    StructuralElementEvaluator :: computeVectorOf(VM_Total, tStep, d); 		  
+	    this->computeStrainVector(strain, gp, tStep, d);
+	    StructuralMaterial :: giveFullSymVectorForm(val, strain, _PlaneStress);
+	    val.resize(9);
+	    val.at(7) = val.at(4);
+	    val.at(8) = val.at(5);
+	    val.at(9) = val.at(6); 
+	  }  else if(type == IST_StressTensor) {
+	    FloatArray strain, stress, fullStress;
+	    StructuralElementEvaluator :: computeVectorOf(VM_Total, tStep, d); 
+	    this->computeStrainVector(strain, gp, tStep, d);
+	    this->computeStressVector(stress, strain, gp, tStep);
+	    StructuralMaterial :: giveFullSymVectorForm(val, stress, _PlaneStress);
+	    val.resize(9);
+	    val.at(7) = val.at(4);
+	    val.at(8) = val.at(5);
+	    val.at(9) = val.at(6);
+	  }
+	      
+	  vtkPieces[0].setCellVar(i, currentCell, val);
+	  currentCell++;
+      }
+    }
+  }
+
+     
+
+// Export nodal variables
+  for ( int i = 1; i <= internalVarsToExport.giveSize(); i++ ) {
+    FloatArray val;
+    InternalStateType type = ( InternalStateType ) internalVarsToExport.at(i);
+    nodeNum = 1;
+    currentCell = 1;
+    for( auto &iRule: integrationRulesArray) {
+      if(!iRule->isActivated())
+	continue;
+      const IntArray *span;
+      span = iRule->giveKnotSpan();
+      for ( int subCell = 1; subCell <= numSpanCells; subCell++ ) {
+	//if ( type == IST_StrainTensor ) { 
+	  FloatMatrix N;
+	  StructuralElementEvaluator :: computeVectorOf(VM_Total, tStep, d);  
+	  this->giveFictiousNodeCoordsForExport(nodeCoords, localNodeCoords, knotVector, span, subCell, nseg);               
+	  for ( int j = 0; j < numCellNodes; j++ ) {
+	    FloatArray localCoords = localNodeCoords.at(j);
+	    GaussPoint *gp = new GaussPoint(iRule.get(), 999, localCoords, 1.0, _PlaneStress); 
+	    if(type == IST_StrainTensor) {
+	      FloatArray strain;
+	      StructuralElementEvaluator :: computeVectorOf(VM_Total, tStep, d); 		  
+	      this->computeStrainVector(strain, gp, tStep, d);
+	      StructuralMaterial :: giveFullSymVectorForm(val, strain, _PlaneStress);
+	      val.resize(9);
+	      val.at(7) = val.at(4);
+	      val.at(8) = val.at(5);
+	      val.at(9) = val.at(6);
+	      
+	    } else if(type == IST_StressTensor) {
+	      FloatArray strain, stress, fullStress;
+	      StructuralElementEvaluator :: computeVectorOf(VM_Total, tStep, d); 
+	      this->computeStrainVector(strain, gp, tStep, d);
+	      this->computeStressVector(stress, strain, gp, tStep);
+	      StructuralMaterial :: giveFullSymVectorForm(val, stress, _PlaneStress);
+	      val.resize(9);
+	      val.at(7) = val.at(4);
+	      val.at(8) = val.at(5);
+	      val.at(9) = val.at(6);
+	    }
+	  vtkPieces[0].setInternalVarInNode(i, currentCell, val);
+	  currentCell++;	    
+	  } 
+	  //	}
+
+      }
+    }
+  }
+  
+
+
+
+    
+
+}
+
+
+
+void 
+NURBSPlaneStressElement :: giveFictiousNodeCoordsForExport(std::vector<FloatArray> &nodeCoords, std::vector<FloatArray> &localNodeCoords, const double *const *knotVector,   const IntArray *span, int iCell, int nSeg) 
+{
+
+  FEInterpolation *interp = this->giveInterpolation();
+
+
+  double du = ( knotVector [ 0 ] [ span->at(1) + 1 ] - knotVector [ 0 ] [ span->at(1) ] ) / nSeg;
+  double dv = ( knotVector [ 1 ] [ span->at(2) + 1 ] - knotVector [ 1 ] [ span->at(2) ] ) / nSeg;
+  
+
+  int iX = iCell%nSeg + 1;
+  int iY = (iCell-1)/nSeg + 1;
+  
+  //FloatArray c [ 4 ];
+  
+  for ( int j = 0; j < 4; j++ ) {
+    localNodeCoords [ j ].resize(2);
+  }
+  localNodeCoords[ 0 ].at(1) = knotVector [ 0 ] [ span->at(1) ] + du * ( iX - 1 );
+  localNodeCoords[ 0 ].at(2) = knotVector [ 1 ] [ span->at(2) ] + dv * ( iY - 1 );
+  localNodeCoords[ 1 ].at(1) = knotVector [ 0 ] [ span->at(1) ] + du * iX;
+  localNodeCoords[ 1 ].at(2) = knotVector [ 1 ] [ span->at(2) ] + dv * ( iY - 1 );
+  localNodeCoords[ 2 ].at(1) = knotVector [ 0 ] [ span->at(1) ] + du * iX;
+  localNodeCoords[ 2 ].at(2) = knotVector [ 1 ] [ span->at(2) ] + dv * iY;
+  localNodeCoords[ 3 ].at(1) = knotVector [ 0 ] [ span->at(1) ] + du * ( iX - 1 );
+  localNodeCoords[ 3 ].at(2) = knotVector [ 1 ] [ span->at(2) ] + dv * iY;
+
+
+
+  for ( int k = 0; k < 4; k++ ) {
+    nodeCoords[k].resize(3);
+    interp->local2global( nodeCoords [ k ], localNodeCoords [ k ], FEIIGAElementGeometryWrapper( this, span ) );
+  }
+  
+}
+
+
 
 // HUHU should be implemented by IGA element (it is the same for Bspline NURBS and TSpline)
 // however in such a case it should be generalized in terms of appropriately multiplying
@@ -186,7 +777,7 @@ void BsplinePlaneStressElement :: drawScalar(oofegGraphicContext &gc, TimeStep *
         span = iRule->giveKnotSpan();
         if ( nsd == 2 ) {
             // divide span locally to get finer geometry rep.
-            int i, j, k, nseg = 4;
+            int i, j, k, nseg = 100;
             double du = ( knotVector [ 0 ] [ span->at(1) + 1 ] - knotVector [ 0 ] [ span->at(1) ] ) / nseg;
             double dv = ( knotVector [ 1 ] [ span->at(2) + 1 ] - knotVector [ 1 ] [ span->at(2) ] ) / nseg;
             for ( i = 1; i <= nseg; i++ ) {
@@ -300,7 +891,7 @@ void NURBSPlaneStressElement :: drawScalar(oofegGraphicContext &gc, TimeStep *tS
         span = iRule->giveKnotSpan();
         if ( nsd == 2 ) {
             // divide span locally to get finer geometry rep.
-            int i, j, k, nseg = 8;
+            int i, j, k, nseg = 100;
             double du = ( knotVector [ 0 ] [ span->at(1) + 1 ] - knotVector [ 0 ] [ span->at(1) ] ) / nseg;
             double dv = ( knotVector [ 1 ] [ span->at(2) + 1 ] - knotVector [ 1 ] [ span->at(2) ] ) / nseg;
             for ( i = 1; i <= nseg; i++ ) {
@@ -500,7 +1091,7 @@ void TSplinePlaneStressElement :: drawScalar(oofegGraphicContext &gc, TimeStep *
         span = iRule->giveKnotSpan();
         if ( nsd == 2 ) {
             // divide span locally to get finer geometry rep.
-            int i, j, k, nseg = 4;
+            int i, j, k, nseg = 100;
             double du = ( knotVector [ 0 ] [ span->at(1) + 1 ] - knotVector [ 0 ] [ span->at(1) ] ) / nseg;
             double dv = ( knotVector [ 1 ] [ span->at(2) + 1 ] - knotVector [ 1 ] [ span->at(2) ] ) / nseg;
             for ( i = 1; i <= nseg; i++ ) {
@@ -643,7 +1234,7 @@ void NURBSSpace3dElement :: drawScalar(oofegGraphicContext &gc, TimeStep *tStep)
         span = iRule->giveKnotSpan();
         if ( nsd == 3 ) {
             // divide span locally to get finer geometry rep.
-            int i, j, k, m, nseg = 8;
+            int i, j, k, m, nseg = 100;
             double du = ( knotVector [ 0 ] [ span->at(1) + 1 ] - knotVector [ 0 ] [ span->at(1) ] ) / nseg;
             double dv = ( knotVector [ 1 ] [ span->at(2) + 1 ] - knotVector [ 1 ] [ span->at(2) ] ) / nseg;
             double dw = ( knotVector [ 2 ] [ span->at(3) + 1 ] - knotVector [ 2 ] [ span->at(3) ] ) / nseg;

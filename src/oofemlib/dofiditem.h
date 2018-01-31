@@ -62,12 +62,42 @@ namespace oofem {
     ENUM_ITEM_WITH_VALUE(W_v, 16) /* v-component of change in director field (in direction of y-axis) */ \
     ENUM_ITEM_WITH_VALUE(W_w, 17) /* w-component of change in director field (in direction of z-axis) */ \
     ENUM_ITEM_WITH_VALUE(Gamma, 18) /* inhomogenous thickness strain in direction of the directorfield m */ \
-    ENUM_ITEM_WITH_VALUE(D_u_edge_const, 19) /* Constant part of boundary u-displacement used by Trefftz element*/ \
-    ENUM_ITEM_WITH_VALUE(D_u_edge_lin, 20) /* Linear part of boundary u-displacement used by Trefftz element*/ \
-    ENUM_ITEM_WITH_VALUE(D_v_edge_const, 21) /* Constant part of boundary v-displacement used by Trefftz element*/ \
-    ENUM_ITEM_WITH_VALUE(D_v_edge_lin, 22) /* Linear part of boundary v-displacement used by Trefftz element*/ \
-    ENUM_ITEM_WITH_VALUE(Warp_PsiTheta, 23) /* Relative twist times deplanation function, used by Trwarp element*/ \
-    ENUM_ITEM_WITH_VALUE(Warp_Theta, 24) /* Relative twist, used by Trwarp element*/ \
+      /*Micromorphic degrees of freedom, i.e. components of full micromorphic displacement gradient tensor */ \
+      ENUM_ITEM_WITH_VALUE(M_X11, 19)					\
+      ENUM_ITEM_WITH_VALUE(M_X22, 20)					\
+      ENUM_ITEM_WITH_VALUE(M_X33, 21)					\
+      ENUM_ITEM_WITH_VALUE(M_X23, 22)					\
+      ENUM_ITEM_WITH_VALUE(M_X13, 23)					\
+      ENUM_ITEM_WITH_VALUE(M_X12, 24)					\
+      ENUM_ITEM_WITH_VALUE(M_X32, 25)					\
+      ENUM_ITEM_WITH_VALUE(M_X31, 26)					\
+      ENUM_ITEM_WITH_VALUE(M_X21, 27)					\
+      /*Microstretch degrees of freedom, i.e. components of symetric part of  micromorphic displacement gradient tensor */ \
+      ENUM_ITEM_WITH_VALUE(M_E11, 28)					\
+      ENUM_ITEM_WITH_VALUE(M_E22, 29)					\
+      ENUM_ITEM_WITH_VALUE(M_E33, 30)					\
+      ENUM_ITEM_WITH_VALUE(M_E23, 31)					\
+      ENUM_ITEM_WITH_VALUE(M_E13, 32)					\
+      ENUM_ITEM_WITH_VALUE(M_E12, 33)					\
+      /*Micropolar(Cosserat) degrees of freedom, i.e. components of skew part of  micromorphic displacement gradient tensor */ \
+      ENUM_ITEM_WITH_VALUE(M_W1, 34)					\
+      ENUM_ITEM_WITH_VALUE(M_W2, 35)					\
+      ENUM_ITEM_WITH_VALUE(M_W3, 36)					\
+      /*Microstrain norm degree of freedom, i.e. trace of micromorphic displacement gradient(or other equivalent micromorphic "strain" norm) */ \
+      ENUM_ITEM_WITH_VALUE(M_D, 37)					\
+      /*Microstrain penalty degree of freedom, within this formulation, the srain gradient or coupled stress theory can be implemented with C0 elements*/ \
+      ENUM_ITEM_WITH_VALUE(M_P, 38)					\
+      /*Micromorphic cumulative strain degree of freedom, within this formulation, the Aifantis gradient plasticity can be implemented with C0 elements*/ \
+      ENUM_ITEM_WITH_VALUE(M_MP, 39)					\
+      /*Warping dofs*/							\
+      ENUM_ITEM_WITH_VALUE(Warp_PsiTheta, 40) /* Relative twist times deplanation function, used by Trwarp element*/ \
+      ENUM_ITEM_WITH_VALUE(Warp_Theta, 41) /* Relative twist, used by Trwarp element*/ \
+      /*Hybrid-Trefftz dofs - old ready to remove*/			\
+      ENUM_ITEM_WITH_VALUE(D_u_edge_const, 42) /* Constant part of boundary u-displacement used by Trefftz element*/ \
+      ENUM_ITEM_WITH_VALUE(D_u_edge_lin, 43) /* Linear part of boundary u-displacement used by Trefftz element*/ \
+      ENUM_ITEM_WITH_VALUE(D_v_edge_const, 44) /* Constant part of boundary v-displacement used by Trefftz element*/ \
+      ENUM_ITEM_WITH_VALUE(D_v_edge_lin, 45) /* Linear part of boundary v-displacement used by Trefftz element*/ \
+
 
 /**
  * Type representing particular dof type. Values of this type describe the physical meaning of

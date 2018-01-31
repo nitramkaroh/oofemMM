@@ -56,6 +56,10 @@ class Element;
  */
 class OOFEM_EXPORT GaussIntegrationRule : public IntegrationRule
 {
+
+private:
+   
+
 public:
     /**
      * Constructor.
@@ -75,6 +79,7 @@ public:
     virtual IRResultType initializeFrom(InputRecord *ir) { return IRRT_OK; }
 
     virtual int getRequiredNumberOfIntegrationPoints(integrationDomain dType, int approxOrder);
+
 
 
     virtual int SetUpPointsOnLine(int nPoints, MaterialMode mode);

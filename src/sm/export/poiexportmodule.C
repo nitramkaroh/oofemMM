@@ -70,6 +70,8 @@ POIExportModule :: initializeFrom(InputRecord *ir)
 
     IR_GIVE_OPTIONAL_FIELD(ir, internalVarsToExport, _IFT_POIExportModule_vars);
     IR_GIVE_OPTIONAL_FIELD(ir, primaryVarsToExport, _IFT_POIExportModule_primvars);
+    nCoords  = 3;
+    IR_GIVE_OPTIONAL_FIELD(ir, nCoords, _IFT_POIExportModule_nCoords);
 
     val = 0;
     IR_GIVE_OPTIONAL_FIELD(ir, val, _IFT_POIExportModule_mtype);
@@ -111,7 +113,7 @@ POIExportModule :: doOutput(TimeStep *tStep, bool forcedOutput)
     FILE *stream = this->giveOutputStream(tStep);
 
     fprintf(stream, "# POI DataFile\n");
-    fprintf( stream, "Output for time %f\n", tStep->giveTargetTime() );
+    fprintf( stream, "# Output for time %f\n", tStep->giveTargetTime() );
 
     this->exportPrimaryVars(stream, tStep);
     this->exportIntVars(stream, tStep);
@@ -155,14 +157,12 @@ POIExportModule :: exportIntVars(FILE *stream, TimeStep *tStep)
 
     // loop over POIs
     POI_dataType &poi = *POIList.begin();
-    poiCoords.at(1) = poi.x;
-    poiCoords.at(2) = poi.y;
-    poiCoords.at(3) = poi.z;
+  
     //int region = poi.region;
 
     for ( i = 1; i <= n; i++ ) {
         type = ( InternalStateType ) internalVarsToExport.at(i);
-        fprintf(stream, "\n\nPOI_INTVAR_DATA %d\n", type);
+        fprintf(stream, "\n\n # POI_INTVAR_DATA %d\n", type);
         this->exportIntVarAs(type, stream, tStep);
     }
 
@@ -176,16 +176,18 @@ POIExportModule :: exportIntVarAs(InternalStateType valID, FILE *stream, TimeSte
     int region;
     IntArray toMap(1);
     Domain *d = emodel->giveDomain(1);
-    FloatArray poiCoords(3);
+    FloatArray poiCoords(nCoords);
     FloatArray val;
 
     toMap.at(1) = ( int ) valID;
 
     // loop over POIs
     for ( auto &poi: POIList ) {
-        poiCoords.at(1) = poi.x;
-        poiCoords.at(2) = poi.y;
-        poiCoords.at(3) = poi.z;
+      poiCoords.at(1) = poi.x;
+      poiCoords.at(2) = poi.y;
+      if(nCoords > 2)
+	poiCoords.at(3) = poi.z;
+
         region = poi.region;
 
         this->giveMapper()->__init(d, toMap, poiCoords, * d->giveSet(region), tStep);
@@ -193,7 +195,8 @@ POIExportModule :: exportIntVarAs(InternalStateType valID, FILE *stream, TimeSte
             OOFEM_WARNING("Failed to map variable");
             val.clear();
         }
-        fprintf(stream, "%10d ", poi.id);
+        fprintf(stream, "%10d %15e %15e %15e", poi.id, poi.x, poi.y, poi.z);
+
         for ( auto &x : val ) {
             fprintf( stream, " %15e", x );
         }

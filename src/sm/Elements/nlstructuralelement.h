@@ -235,6 +235,8 @@ protected:
     friend class GradDpElement;
     friend class PhaseFieldElement;
     friend class XfemStructuralElementInterface;
+    friend class BaseMicromorphicElement;
+    friend class BaseSecondGradientElement;
 };
 } // end namespace oofem
 #endif // nlstructuralelement_h

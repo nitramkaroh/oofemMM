@@ -35,10 +35,11 @@
 #include "Elements/PlaneStrain/qplanestrain.h"
 #include "fei2dquadquad.h"
 #include "classfactory.h"
+#include "gausspoint.h"
+
 
 #ifdef __OOFEG
  #include "oofeggraphiccontext.h"
- #include "gausspoint.h"
 #endif
 
 namespace oofem {
@@ -47,7 +48,7 @@ REGISTER_Element(QPlaneStrain);
 FEI2dQuadQuad QPlaneStrain :: interpolation(1, 2);
 
 QPlaneStrain :: QPlaneStrain(int n, Domain *aDomain) :
-    PlaneStrainElement(n, aDomain), ZZNodalRecoveryModelInterface(this)
+    PlaneStrainElement(n, aDomain), ZZNodalRecoveryModelInterface(this), SpatialLocalizerInterface(this)
 {
     numberOfDofMans  = 8;
     numberOfGaussPoints = 4;
@@ -61,10 +62,133 @@ QPlaneStrain :: giveInterface(InterfaceType interface)
 {
     if ( interface == ZZNodalRecoveryModelInterfaceType ) {
         return static_cast< ZZNodalRecoveryModelInterface * >(this);
+    } else if ( interface == NodalAveragingRecoveryModelInterfaceType ) {
+        return static_cast< NodalAveragingRecoveryModelInterface * >(this);
+    } else if ( interface == SpatialLocalizerInterfaceType ) {
+        return static_cast< SpatialLocalizerInterface * >(this);
     }
 
     return NULL;
 }
+
+void
+QPlaneStrain :: NodalAveragingRecoveryMI_computeNodalValue(FloatArray &answer, int node,  InternalStateType type, TimeStep *tStep)
+{
+
+  int size = 0;
+  double scale = 0.;
+  FloatArray val;
+  int iGp;
+  for ( GaussPoint *gp: *integrationRulesArray [ 0 ] ) {
+    
+    iGp = gp->giveNumber();
+    giveIPValue(val, gp, type, tStep);
+    
+    /*   FloatArray stresses  =  {2.3211e+03, 2.3262e+03, 1.9537e+03, 1.9584e+03};
+    val.at(1) = stresses.at(iGp);
+    */
+    if(size == 0) {
+      size = val.giveSize();
+      answer.resize(size);
+      answer.zero();
+    }
+
+    if(scale == 0.) {
+      scale = fabs(gp->giveNaturalCoordinates().at(1));
+    }
+
+    
+    FloatArray coords;
+    // gp->giveNaturalCoordinates();
+
+    switch ( node ) {
+      /*case 1:
+      coords = {-1.0,-1.0};
+      break;
+    case 2:
+      coords = {1.0,-1.0};
+      break;
+    case 3:
+      coords = {1.0,1.0};
+      break;
+    case 4:
+      coords = {-1.0,1.0};
+      break;
+    case 5:
+      coords = {0.0,-1.0};
+      break;
+    case 6:
+      coords = {1.0,0.0};
+      break;
+    case 7:
+      coords = {0.0,1.0};
+      break;
+    case 8:
+      coords = {-1.0,0.0};
+      break;
+      */
+    case 1:
+      coords = {1.0,-1.0};
+      break;
+    case 2:
+      coords = {1.0,1.0};
+      break;
+    case 3:
+      coords = {-1.0,1.0};
+      break;
+    case 4:
+      coords = {-1.0,-1.0};
+      break;
+    case 5:
+      coords = {1.0,0.0};
+      break;
+    case 6:
+      coords = {0.0,1.0};
+      break;
+    case 7:
+      coords = {-1.0,0.0};
+      break;
+    case 8:
+      coords = {0.0,-1.0};
+      break;
+      
+    default:
+      OOFEM_ERROR("unsupported node");
+    }
+    
+
+
+    if(scale != 0) {
+      coords.times(1./scale);
+    } else {
+      coords.zero();
+    }
+    FloatArray n, nodalValue;
+    //this->giveInterpolation()->evalN(n, coords, *this->giveCellGeometryWrapper());
+    double ksi = coords.at(1);
+    double eta = coords.at(2);
+    n = {
+      ( 1. - ksi ) * ( 1. - eta ) * 0.25,
+      ( 1. + ksi ) * ( 1. - eta ) * 0.25,
+      ( 1. + ksi ) * ( 1. + eta ) * 0.25,
+      ( 1. - ksi ) * ( 1. + eta ) * 0.25        
+    };    
+
+
+
+
+    for ( int j = 1; j <= size; j++ ) {
+      answer.at(j) += n.at(iGp)*val.at(j);
+    }
+    
+  }
+  
+
+}
+
+
+
+
 
 
 #ifdef __OOFEG

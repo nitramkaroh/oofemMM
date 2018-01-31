@@ -113,6 +113,12 @@ InternalStateValueType giveInternalStateValueType(InternalStateType type)
 
     case IST_DeformationGradientTensor:
     case IST_FirstPKStressTensor:
+    case IST_MicromorphicStress:
+    case IST_MicromorphicStrain:
+    case IST_MicromorphicRelativeStress:
+    case IST_MicromorphicRelativeStrain:
+    case IST_MicromorphicHigherOrderStress:
+    case IST_MicromorphicHigherOrderStrain:
     //case IST_MaterialOrientation:
         return ISVT_TENSOR_G;
 
@@ -220,7 +226,7 @@ InternalStateValueType giveInternalStateValueType(UnknownType type)
 {
     if ( type == DisplacementVector || type == EigenVector || type == VelocityVector || type == DirectorField ) {
         return ISVT_VECTOR;
-    } else if ( type == FluxVector || type == PressureVector || type == Temperature || type == Humidity || type == DeplanationFunction ) {
+    } else if ( type == FluxVector || type == PressureVector || type == Temperature || type == Humidity || type == DeplanationFunction || type == MicromorphicStrainNorm) {
         return ISVT_SCALAR;
     } else {
         OOFEM_ERROR( "unsupported UnknownType %s", __UnknownTypeToString(type) );

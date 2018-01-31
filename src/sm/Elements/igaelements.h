@@ -39,20 +39,66 @@
 #include "iga/feibspline.h"
 #include "iga/feinurbs.h"
 #include "iga/feitspline.h"
+#include "../sm/Elements/Bars/structural1delementevaluator.h"
 #include "../sm/Elements/PlaneStress/planestresselementevaluator.h"
 #include "../sm/Elements/3D/space3delementevaluator.h"
 #include "floatarray.h"
 #include "floatmatrix.h"
 #include "matresponsemode.h"
 #include "mathfem.h"
+#include "vtkxmlexportmodule.h"
 
+#define _IFT_NURBS1DElement_Name "nurbs1delement"
 #define _IFT_BsplinePlaneStressElement_Name "bsplineplanestresselement"
 #define _IFT_NURBSPlaneStressElement_Name "nurbsplanestresselement"
 #define _IFT_TSplinePlaneStressElement_Name "tsplineplanestresselement"
 #define _IFT_NURBSSpace3dElement_Name "nurbs3delement"
 
 namespace oofem {
-class BsplinePlaneStressElement : public IGAElement, public PlaneStressStructuralElementEvaluator
+
+
+class NURBS1DElement : public IGAElement, public Structural1DElementEvaluator, public VTKXMLExportModuleElementInterface
+{
+protected:
+   NURBSInterpolation interpolation;
+
+public:
+    NURBS1DElement(int n, Domain * aDomain);
+
+    virtual IRResultType initializeFrom(InputRecord *ir);
+    virtual int checkConsistency();
+
+    virtual void giveCharacteristicMatrix(FloatMatrix &answer, CharType mtrx, TimeStep *tStep) {
+        Structural1DElementEvaluator :: giveCharacteristicMatrix(answer, mtrx, tStep);
+
+    }
+    virtual void giveCharacteristicVector(FloatArray &answer, CharType type, ValueModeType mode, TimeStep *t) {
+        Structural1DElementEvaluator :: giveCharacteristicVector(answer, type, mode, t);
+    }
+
+    virtual FEInterpolation *giveInterpolation() const { return const_cast< NURBSInterpolation * >(& this->interpolation); }
+    virtual Element *giveElement() { return this; }
+    virtual void giveDofManDofIDMask(int inode, IntArray &answer) const {
+        Structural1DElementEvaluator :: giveDofManDofIDMask(inode, answer);
+    }
+    virtual int computeNumberOfDofs() { return numberOfDofMans; }
+    virtual void updateInternalState(TimeStep *tStep) { Structural1DElementEvaluator :: updateInternalState(tStep); }
+    // definition & identification
+    virtual const char *giveInputRecordName() const { return _IFT_NURBS1DElement_Name; }
+    virtual const char *giveClassName() const { return "NURBS1DElement"; }
+/*
+    virtual void giveCompositeExportData(IntArray &primaryVarsToExport, IntArray &internalVarsToExport, std::vector<FloatArray> &nodeCoords, std::vector<IntArray> &cellNodes, IntArray &cellTypes, std::vector<FloatArray> &primaryVars, std::vector<FloatArray> &cellVars, TimeStep *tStep );
+ 
+    virtual void giveCompositeExportData(std::vector< VTKPiece > &vtkPieces, IntArray &primaryVarsToExport, IntArray &internalVarsToExport, IntArray cellVarsToExport, TimeStep *tStep);
+    void giveFictiousNodeCoordsForExport(std::vector<FloatArray> &nodes, const double *const *knotVector,   const IntArray *span, int iCell, int nSeg);
+    virtual Interface *giveInterface(InterfaceType t) { if ( t == VTKXMLExportModuleElementInterfaceType ) { return static_cast< VTKXMLExportModuleElementInterface * >( this ); } else { return NULL; } }
+*/
+protected:
+    virtual int giveNsd() { return 1; }
+};
+
+
+  class BsplinePlaneStressElement : public IGAElement, public PlaneStressStructuralElementEvaluator, public VTKXMLExportModuleElementInterface
 {
 protected:
     BSplineInterpolation interpolation;
@@ -81,6 +127,12 @@ public:
     virtual const char *giveInputRecordName() const { return _IFT_BsplinePlaneStressElement_Name; }
     virtual const char *giveClassName() const { return "BsplinePlaneStressElement"; }
 
+    virtual void giveCompositeExportData(IntArray &primaryVarsToExport, IntArray &internalVarsToExport, std::vector<FloatArray> &nodeCoords, std::vector<IntArray> &cellNodes, IntArray &cellTypes, std::vector<FloatArray> &primaryVars, std::vector<FloatArray> &cellVars, TimeStep *tStep );
+ 
+    virtual void giveCompositeExportData(std::vector< VTKPiece > &vtkPieces, IntArray &primaryVarsToExport, IntArray &internalVarsToExport, IntArray cellVarsToExport, TimeStep *tStep);
+    void giveFictiousNodeCoordsForExport(std::vector<FloatArray> &nodes, FloatArray &parametricCentroid,const double *const *knotVector,   const IntArray *span, int iCell, int nSeg);
+    virtual Interface *giveInterface(InterfaceType t) { if ( t == VTKXMLExportModuleElementInterfaceType ) { return static_cast< VTKXMLExportModuleElementInterface * >( this ); } else { return NULL; } }
+
 #ifdef __OOFEG
     // Graphics output
     virtual void drawScalar(oofegGraphicContext &gc, TimeStep *tStep);
@@ -94,7 +146,7 @@ protected:
 };
 
 
-class NURBSPlaneStressElement : public IGAElement, public PlaneStressStructuralElementEvaluator
+class NURBSPlaneStressElement : public IGAElement, public PlaneStressStructuralElementEvaluator, public VTKXMLExportModuleElementInterface
 {
 protected:
     NURBSInterpolation interpolation;
@@ -122,6 +174,12 @@ public:
     // definition & identification
     virtual const char *giveInputRecordName() const { return _IFT_NURBSPlaneStressElement_Name; }
     virtual const char *giveClassName() const { return "NURBSPlaneStressElement"; }
+
+    virtual void giveCompositeExportData(IntArray &primaryVarsToExport, IntArray &internalVarsToExport, std::vector<FloatArray> &nodeCoords, std::vector<IntArray> &cellNodes, IntArray &cellTypes, std::vector<FloatArray> &primaryVars, std::vector<FloatArray> &cellVars, TimeStep *tStep ); 
+    virtual void giveCompositeExportData(std::vector< VTKPiece > &vtkPieces, IntArray &primaryVarsToExport, IntArray &internalVarsToExport, IntArray cellVarsToExport, TimeStep *tStep);
+    void giveFictiousNodeCoordsForExport(std::vector<FloatArray> &nodes, std::vector<FloatArray> &localNodes, const double *const *knotVector,   const IntArray *span, int iCell, int nSeg);
+    virtual Interface *giveInterface(InterfaceType t) { if ( t == VTKXMLExportModuleElementInterfaceType ) { return static_cast< VTKXMLExportModuleElementInterface * >( this ); } else { return NULL; } }
+
 #ifdef __OOFEG
     //
     // Graphics output

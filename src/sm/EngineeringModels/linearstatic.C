@@ -105,7 +105,7 @@ LinearStatic :: initializeFrom(InputRecord *ir)
     IR_GIVE_OPTIONAL_FIELD(ir, val, _IFT_EngngModel_smtype);
     sparseMtrxType = ( SparseMtrxType ) val;
 
-#ifdef __PARALLEL_MODE
+#ifdef __PARALLEL_MODE6
     if ( isParallel() ) {
         commBuff = new CommunicatorBuff( this->giveNumberOfProcesses() );
         communicator = new NodeCommunicator(this, commBuff, this->giveRank(),

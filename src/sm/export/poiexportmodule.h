@@ -50,6 +50,7 @@
 #define _IFT_POIExportModule_primvars "primvars"
 #define _IFT_POIExportModule_mtype "mtype"
 #define _IFT_POIExportModule_poifilename "poifilename"
+#define _IFT_POIExportModule_nCoords "ncoords"
 //@}
 
 namespace oofem {
@@ -69,6 +70,8 @@ protected:
         // bp: region is now the set number (which is more flexible)
         int region;
     };
+    
+    int nCoords;
 
     /// List of InternalStateType values, identifying the selected vars for export.
     IntArray internalVarsToExport;

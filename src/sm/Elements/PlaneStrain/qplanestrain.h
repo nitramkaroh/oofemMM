@@ -37,6 +37,8 @@
 
 #include "Elements/structural2delement.h"
 #include "zznodalrecoverymodel.h"
+#include "spatiallocalizer.h"
+#include "nodalaveragingrecoverymodel.h"
 
 #define _IFT_QPlaneStrain_Name "qplanestrain"
 
@@ -47,7 +49,7 @@ class FEI2dQuadQuad;
  * This class implements an Quadratic isoparametric eight-node quadrilateral plane-
  * stress elasticity finite element. Each node has 2 degrees of freedom.
  */
-class QPlaneStrain : public PlaneStrainElement, public ZZNodalRecoveryModelInterface
+class QPlaneStrain : public PlaneStrainElement, public ZZNodalRecoveryModelInterface, public SpatialLocalizerInterface, public NodalAveragingRecoveryModelInterface
 {
 protected:
     static FEI2dQuadQuad interpolation;
@@ -65,6 +67,9 @@ public:
     virtual int testElementExtension(ElementExtension ext) { return 0; } ///@todo //check this probably ok now when derived from PE-element
 
     virtual Interface *giveInterface(InterfaceType it);
+
+    virtual void NodalAveragingRecoveryMI_computeNodalValue(FloatArray &answer, int node, InternalStateType type, TimeStep *tStep);
+
 
 #ifdef __OOFEG
     virtual void drawRawGeometry(oofegGraphicContext &gc, TimeStep *tStep);

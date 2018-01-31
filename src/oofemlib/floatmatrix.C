@@ -44,6 +44,10 @@
 #include "error.h"
 #include "datastream.h"
 
+#include "skylineu.h"
+
+
+
 #include <cstdlib>
 #include <cstring>
 #include <ostream>
@@ -1349,6 +1353,28 @@ void FloatMatrix :: bePinvID()
     values [ 21 ] = values [ 28 ] = values [ 35 ] = 0.5;
 }
 
+void FloatMatrix :: beSkewProjectionMatrix()
+// this matrix is the 9x9 skew projection matrix
+{
+    this->resize(9, 9);
+    this->at(4,4) = this-> at(5,5) = this->at(6,6) = 0.5;
+    this->at(7,7) = this-> at(8,8) = this->at(9,9) = 0.5;
+
+    this->at(4,7) = this->at(5,8) = this->at(6,9) = -0.5;
+    this->at(7,4) = this->at(8,5) = this->at(9,6) = -0.5;
+}
+
+
+
+void FloatMatrix :: beSymProjectionMatrix()
+// this matrix is the 6x6 symmetric projection matrix
+{
+    this->resize(6, 6);
+    this->at(1,1) = this->at(2,2) = this->at(3,3) = 1.0;
+    this->at(4,4) = this-> at(5,5) = this->at(6,6) = 0.5;
+}
+
+
 
 void FloatMatrix :: resize(int rows, int columns)
 //
@@ -1455,9 +1481,9 @@ void FloatMatrix :: printYourself() const
 {
     printf("FloatMatrix with dimensions : %d %d\n",
            nRows, nColumns);
-    if ( nRows <= 250 && nColumns <= 250 ) {
+    if ( nRows <= 2500 && nColumns <= 2500 ) {
         for ( int i = 1; i <= nRows; ++i ) {
-            for ( int j = 1; j <= nColumns && j <= 100; ++j ) {
+            for ( int j = 1; j <= nColumns && j <= 2500; ++j ) {
                 printf( "%10.3e  ", this->at(i, j) );
             }
 
@@ -1473,16 +1499,33 @@ void FloatMatrix :: printYourself(const std::string name) const
 // Prints the receiver on screen.
 {
     printf("%s (%d x %d): \n", name.c_str(), nRows, nColumns);
-    if ( nRows <= 250 && nColumns <= 250 ) {
+    if ( nRows <= 2500000 && nColumns <= 2500000 ) {
         for ( int i = 1; i <= nRows; ++i ) {
-            for ( int j = 1; j <= nColumns && j <= 100; ++j ) {
+            for ( int j = 1; j <= nColumns && j <= 2500000; ++j ) {
                 printf( "%10.3e  ", this->at(i, j) );
             }
 
             printf("\n");
         }
     } else {
-        printf("   large matrix : coefficients not printed \n");
+      printf("   large matrix %d %d : coefficients not printed \n", nRows, nColumns);
+    }
+}
+
+void FloatMatrix :: printYourself(FILE*  name) const
+// Prints the receiver on screen.
+{
+  //    printf("%s (%d x %d): \n", name.c_str(), nRows, nColumns);
+    if ( nRows <= 25000000 && nColumns <= 25000000 ) {
+        for ( int i = 1; i <= nRows; ++i ) {
+            for ( int j = 1; j <= nColumns && j <= 25000000; ++j ) {
+	      fprintf(name, "%10.3e  ", this->at(i, j) );
+            }
+
+            fprintf(name,"\n");
+        }
+    } else {
+      fprintf( name, "large matrix : coefficients not printed \n");
     }
 }
 
@@ -1639,6 +1682,59 @@ void FloatMatrix :: beMatrixForm(const FloatArray &aArray)
         this->at(2, 1) = aArray.at(6);
     }
 }
+
+void FloatMatrix :: beSkewMatrixForm(const FloatArray &aArray)
+{
+#  ifdef DEBUG
+  if ( ( aArray.giveSize() != 3) && ( aArray.giveSize() != 1) ){
+        OOFEM_ERROR("matrix dimension is not 3x3");
+    }
+#  endif
+    this->resize(3, 3);
+    this->zero();
+    if(aArray.giveSize() == 3) {
+      this->at(2, 3) = aArray.at(1);
+      this->at(1, 3) = aArray.at(2);
+      this->at(1, 2) = aArray.at(3);
+      this->at(3, 2) = -aArray.at(1);
+      this->at(3, 1) = -aArray.at(2);
+      this->at(2, 1) = -aArray.at(3); 
+    } else if(aArray.giveSize() == 1) {
+      this->at(1, 2) = aArray.at(1);
+      this->at(2, 1) = -aArray.at(1);
+    }
+}
+
+
+void FloatMatrix :: giveMatrixOfAxialVector(const FloatArray &aVector)
+{
+  // Revrites the axial vector into its associated matrix form
+  // Axial vector w of a skew tensor W is defined such that W.v = w x v, for any v
+  // That leads to W_(ik) = eps_(ijk) w_(j)
+ 
+#  ifdef DEBUG
+  if (( aVector.giveSize() != 3 ) && ( aVector.giveSize() != 1 )){
+        OOFEM_ERROR("matrix dimension is not 3x3");
+    }
+#  endif
+    this->resize(3, 3);
+    this->zero();
+  if(aVector.giveSize() == 3) {
+    this->at(2, 3) = -aVector.at(1);
+    this->at(1, 3) =  aVector.at(2);
+    this->at(1, 2) = -aVector.at(3);
+    this->at(3, 2) =  aVector.at(1);
+    this->at(3, 1) = -aVector.at(2);
+    this->at(2, 1) =  aVector.at(3);    
+  } else if(aVector.giveSize() == 1) {
+    this->at(1, 2) = -aVector.at(1);
+    this->at(2, 1) =  aVector.at(1);
+  }
+}
+
+
+
+
 
 void FloatMatrix :: changeComponentOrder()
 {
@@ -2031,6 +2127,8 @@ bool FloatMatrix :: jaco_(FloatArray &eval, FloatMatrix &v, int nf)
 
     return 0;
 } /* jaco_ */
+
+
 
 
 #ifdef BOOST_PYTHON

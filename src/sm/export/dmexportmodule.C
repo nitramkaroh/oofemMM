@@ -114,7 +114,7 @@ DofManExportModule :: doOutput(TimeStep *tStep, bool forcedOutput)
             displacement = dof->giveUnknown(VM_Total, tStep);
             fprintf(stream, " %g", displacement);
         }
-        fprintf(stream, "\n");
+        fprintf(stream, ";\n");
     }
 
 #if 0

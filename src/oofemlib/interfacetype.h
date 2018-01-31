@@ -76,7 +76,11 @@ enum InterfaceType {
 
     XfemElementInterfaceType,
     VTKXMLExportModuleElementInterfaceType,
-    FailureModuleElementInterfaceType
+    FailureModuleElementInterfaceType,
+
+    MicromorphicMaterialExtensionInterfaceType,
+    SecondGradientMaterialExtensionInterfaceType
+
 };
 } // end namespace oofem
 #endif // interfacetype_h

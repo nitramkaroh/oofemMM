@@ -149,6 +149,8 @@ protected:
     int material;
     /// Number of associated cross section.
     int crossSection;
+    /// Activation flag
+    bool isActivatedFlag;
     /**
      * Array containing indexes of loads (body loads and boundary loads are kept separately),
      * that apply on receiver.
@@ -222,6 +224,13 @@ public:
      * @return Number of DOFs in element.
      */
     virtual int giveNumberOfDofs() { return 0; }
+
+    /**
+     * @return Number of GPs in element.
+     */
+    virtual int giveNumberOfGaussPoints(){return numberOfGaussPoints;}
+
+
     /**
      * @return Number of internal DOF managers of element.
      */
@@ -679,6 +688,9 @@ public:
      * @return True, if receiver is activated for given solution step, otherwise false.
      */
     virtual bool isActivated(TimeStep *tStep);
+    virtual bool isActivated(){return isActivatedFlag;}
+    virtual void activateYourself(){isActivatedFlag = true;}
+    virtual void deActivateYourself(){isActivatedFlag = false;}
 
     // time step initialization (required for some non-linear solvers)
     /**

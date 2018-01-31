@@ -115,6 +115,9 @@ protected:
      */
     bool isDynamic;
 
+    /// Activation flag
+    bool isActivatedFlag; 
+
 public:
     std::vector< GaussPoint *> :: iterator begin() { return gaussPoints.begin(); }
     std::vector< GaussPoint *> :: iterator end() { return gaussPoints.end(); }
@@ -245,6 +248,15 @@ public:
     std :: string errorInfo(const char *func) const { return std :: string(giveClassName()) + func; }
     virtual IntegrationRuleType giveIntegrationRuleType() const { return IRT_None; }
     virtual IRResultType initializeFrom(InputRecord *ir) { return IRRT_OK; }
+
+
+
+    /*Activation and deactivation of integration rule*/
+    virtual bool isActivated(){return isActivatedFlag;}
+    virtual void activateYourself(){isActivatedFlag = true;}
+    virtual void deActivateYourself(){isActivatedFlag = false;}
+
+
 
     /**
      * Trivial implementation, only creates a single point.
