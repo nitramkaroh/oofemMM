@@ -94,14 +94,15 @@ BaseMicromorphicElement :: giveLocationArrayOfDofIDs(IntArray &locationArray_u, 
 void
 BaseMicromorphicElement :: computeB_uMatrixAt(GaussPoint *gp, FloatMatrix &B, NLStructuralElement *element, bool isStressTensorSymmetric)
 {
-    if(isStressTensorSymmetric)
+    if(isStressTensorSymmetric && element->giveGeometryMode() == 0) {
       element->computeBmatrixAt(gp, B);
-    else
+    } else {
       element->computeBHmatrixAt(gp, B);
+    }
 }
  
 void
-BaseMicromorphicElement :: computeGeneralizedStressVectors(FloatArray &sigma, FloatArray &s, FloatArray &S, GaussPoint *gp, TimeStep *tStep)
+BaseMicromorphicElement :: computeGeneralizedStressVectors(FloatArray &stress, FloatArray &s, FloatArray &M, GaussPoint *gp, TimeStep *tStep)
 {
     NLStructuralElement *elem = this->giveElement();
     StructuralCrossSection *cs = elem->giveStructuralCrossSection();
@@ -111,14 +112,21 @@ BaseMicromorphicElement :: computeGeneralizedStressVectors(FloatArray &sigma, Fl
     }
 
     IntArray IdMask_m;
-    FloatArray displacementGradient, micromorphicVar, micromorphicVarGrad;
+    FloatArray micromorphicVar, micromorphicVarGrad;
     
-    this->computeDisplacementGradient(displacementGradient, gp, tStep, micromorphMat->isStressTensorSymmetric());
+    if(elem->giveGeometryMode() == 0) {
+      FloatArray displacementGradient;
+      this->computeDisplacementGradient(displacementGradient, gp, tStep, micromorphMat->isStressTensorSymmetric());
     this->giveDofManDofIDMask_m( IdMask_m );
-
     this->computeMicromorphicVars(micromorphicVar,micromorphicVarGrad,IdMask_m, gp, tStep);   
-
-    micromorphMat->giveGeneralizedStressVectors(sigma, s, S, gp, displacementGradient, micromorphicVar, micromorphicVarGrad, tStep);
+    micromorphMat->giveGeneralizedStressVectors(stress, s, M, gp, displacementGradient, micromorphicVar, micromorphicVarGrad, tStep);
+    } else {
+      FloatArray deformationGradient;
+      elem->computeDeformationGradientVector(deformationGradient, gp, tStep);
+      this->giveDofManDofIDMask_m( IdMask_m );
+      this->computeMicromorphicVars(micromorphicVar,micromorphicVarGrad,IdMask_m, gp, tStep);   
+      micromorphMat->giveFiniteStrainGeneralizedStressVectors(stress, s, M, gp, deformationGradient, micromorphicVar, micromorphicVarGrad, tStep);
+    }
     
 }
 
@@ -134,7 +142,6 @@ BaseMicromorphicElement :: computeDisplacementGradient(FloatArray &answer, Gauss
     answer.beProductOf(b, u);
 }
 
- 
 
 void
 BaseMicromorphicElement :: computeMicromorphicVars(FloatArray &micromorphicVar,FloatArray &micromorphicVarGrad, IntArray IdMask_m, GaussPoint *gp, TimeStep *tStep)
@@ -189,23 +196,26 @@ BaseMicromorphicElement :: giveStandardInternalForcesVector(FloatArray &answer, 
 {
     NLStructuralElement *elem = this->giveElement();
     StructuralCrossSection *cs = elem->giveStructuralCrossSection();
-    FloatArray BS, vStress, s, S;
+    FloatArray BS, vStress, s, M;
     FloatMatrix B;
     for ( GaussPoint *gp: *elem->giveIntegrationRule(0) ) {
       if ( useUpdatedGpRecord == 1 ) {
-        vStress = static_cast< MicromorphicMaterialStatus * >( gp->giveMaterialStatus() )->giveTempStressVector();
+	if(this->giveElement()->giveGeometryMode() == 0) {
+	  vStress = static_cast< MicromorphicMaterialStatus * >( gp->giveMaterialStatus() )->giveTempStressVector();
+	} else {
+	  vStress = static_cast< MicromorphicMaterialStatus * >( gp->giveMaterialStatus() )->giveTempPVector();
+	}	
       } else {
-	computeGeneralizedStressVectors(vStress, s, S, gp, tStep);      
+	this->computeGeneralizedStressVectors(vStress, s, M, gp, tStep);      
       }
+    
       MicromorphicMaterialExtensionInterface *micromorphicMat = dynamic_cast< MicromorphicMaterialExtensionInterface * >(cs->giveMaterialInterface(MicromorphicMaterialExtensionInterfaceType, gp) );
-        if ( !micromorphicMat ) {
-            OOFEM_ERROR("Material doesn't implement the required Micromorphic interface!");
-        }
-        // Compute nodal internal forces at nodes as f = B^T*Stress dV
+      if ( !micromorphicMat ) {
+	OOFEM_ERROR("Material doesn't implement the required Micromorphic interface!");
+      }
+      // Compute nodal internal forces at nodes as f = B^T*Stress dV
       double dV  = elem->computeVolumeAround(gp);
-      bool isStressTensorSymmetric = micromorphicMat->isStressTensorSymmetric();
-      this->computeB_uMatrixAt(gp, B, elem, isStressTensorSymmetric);
-      
+      this->computeB_uMatrixAt(gp, B, elem, micromorphicMat->isStressTensorSymmetric());    
       BS.beTProductOf(B, vStress);
       answer.add(dV, BS);
     }

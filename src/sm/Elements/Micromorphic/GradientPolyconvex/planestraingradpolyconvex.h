@@ -50,7 +50,7 @@ protected:
 
 public:
     PlaneStrainGradPolyconvex(int n, Domain * d);
-    virtual ~PlaneStraingradPolyconvex() { }
+    virtual ~PlaneStrainGradPolyconvex() { }
 
  protected:
 

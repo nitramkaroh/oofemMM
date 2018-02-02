@@ -103,9 +103,11 @@ set (sm_element
     Elements/Micromorphic/Microplastic/truss1dmicroplastic.C
     Elements/Micromorphic/Microplastic/planestrainmicroplastic.C
     Elements/Micromorphic/Microplastic/qplanestrainmicroplastic.C
+    #Gradient-polyconvex element based on micromorph continua
+    Elements/Micromorphic/GradientPolyconvex/planestraingradpolyconvex.C
     #Second-gradient continua
     Elements/Micromorphic/Straindivergence/planestrainstraindivergence.C
-    
+
 
     #qplanstrssphf.C
     )
@@ -245,6 +247,7 @@ set (sm_material
     Materials/Micromorphic/Micropolar/micropolarmaterial_elastic.C
     Materials/Micromorphic/Micromorphic/micromorphicmaterial_elastic.C
     Materials/Micromorphic/Microplasticity/misesmatmicroplastic.C
+    Materials/Micromorphic/GradientPolyconvex/gradientpolyconvex.C
     # Second-gradient materials
     Materials/Micromorphic/secondgradientms.C
     Materials/Micromorphic/secondgradientmaterialextensioninterface.C
